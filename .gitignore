@@ -1,0 +1,9 @@
+node_modules
+.next
+.env
+src/generated/prisma
+sync-bridge/node_modules
+sync-bridge/queue.json
+sync-bridge/.env
+*.log
+.DS_Store

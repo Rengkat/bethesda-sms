@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+:root {
+  /* Brand palette — sampled from the Bethesda Home & School for the Blind site */
+  --color-brand-blue: #2f3fe0;      /* primary CTA / nav active / logo */
+  --color-brand-blue-dark: #212ea8; /* hover / pressed */
+  --color-brand-blue-light: #eef0fd;
+  --color-brand-navy: #16161d;      /* footer / dark sidebar */
+  --color-brand-navy-soft: #21212b;
+  --color-brand-lavender: #efebfb;  /* light accent section background */
+  --color-brand-lavender-deep: #e2dbf7;
+
+  --color-success: #1f9d55;
+  --color-warning: #b45309;
+  --color-danger: #d92d20;
+  --color-danger-bg: #fef3f2;
+
+  --background: #ffffff;
+  --foreground: #16161d;
+  --muted: #667085;
+  --border: #e4e6ec;
+
+  --focus-ring: #2f3fe0;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+
+  --color-brand-blue: var(--color-brand-blue);
+  --color-brand-blue-dark: var(--color-brand-blue-dark);
+  --color-brand-blue-light: var(--color-brand-blue-light);
+  --color-brand-navy: var(--color-brand-navy);
+  --color-brand-navy-soft: var(--color-brand-navy-soft);
+  --color-brand-lavender: var(--color-brand-lavender);
+  --color-brand-lavender-deep: var(--color-brand-lavender-deep);
+
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-danger: var(--color-danger);
+  --color-danger-bg: var(--color-danger-bg);
+
+  --font-sans: var(--font-inter);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* ---- Accessibility baseline (non-negotiable for this build) ---- */
+
+/* Strong, high-contrast focus ring on every interactive element.
+   Never remove outline without replacing it — screen-reader and
+   keyboard-only users rely on this to track position. */
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+a,
+button,
+input,
+select,
+textarea,
+[tabindex] {
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--color-brand-blue);
+  color: white;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0 0 8px 0;
+  font-weight: 600;
+}
+
+.skip-link:focus {
+  left: 0;
+}
+
+/* Respect reduced-motion preference site-wide */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Utility for visually-hidden but screen-reader-accessible text */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

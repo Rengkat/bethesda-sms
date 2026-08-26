@@ -1,0 +1,17 @@
+{
+  "name": "bethesda-sms-sync-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Runs on the Raspberry Pi. Polls the ZKTeco K40 over LAN and forwards new logs to the Next.js app.",
+  "type": "commonjs",
+  "main": "sync.js",
+  "scripts": {
+    "start": "node sync.js",
+    "pm2": "pm2 start sync.js --name bethesda-sync-bridge"
+  },
+  "dependencies": {
+    "node-zklib": "^0.2.14",
+    "node-fetch": "^2.7.0",
+    "dotenv": "^16.4.5"
+  }
+}

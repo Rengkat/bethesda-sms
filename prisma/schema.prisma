@@ -1,0 +1,257 @@
+// Bethesda Home & School for the Blind — Staff Management System
+// Prisma schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Core identity & org structure
+// ---------------------------------------------------------------------------
+
+model Staff {
+  id                 String    @id @default(cuid())
+  staffCode          String    @unique // e.g. BHB-0042, mapped to ZKTeco device user ID
+  fullName           String
+  email              String?   @unique
+  phone              String?
+  role               StaffRole
+  department         Department @relation(fields: [departmentId], references: [id])
+  departmentId       String
+  employmentType     EmploymentType
+  isVisuallyImpaired Boolean   @default(false) // informs UI/communication preferences, not access control
+  dateHired          DateTime
+  dateExited         DateTime?
+  active             Boolean   @default(true)
+
+  shiftAssignments ShiftAssignment[]
+  attendances      Attendance[]
+  leaveRequests    LeaveRequest[]
+  documents        StaffDocument[]
+  user             User?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([departmentId])
+  @@index([active])
+}
+
+enum StaffRole {
+  SUPER_ADMIN
+  HR_ADMIN
+  SUPERVISOR
+  TEACHER
+  HOUSE_PARENT
+  SUPPORT_STAFF
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  VOLUNTEER
+}
+
+model Department {
+  id    String  @id @default(cuid())
+  name  String  @unique // Academics, Boarding/House, Admin, Kitchen, Security, Grounds
+  staff Staff[]
+}
+
+// ---------------------------------------------------------------------------
+// Shifts & attendance
+// ---------------------------------------------------------------------------
+
+model ShiftType {
+  id                 String   @id @default(cuid())
+  name               String // "School Day", "Boarding Night", "Boarding Day"
+  startTime          String // "07:30"
+  endTime            String // "15:30"
+  gracePeriodMinutes Int      @default(10)
+  assignments        ShiftAssignment[]
+}
+
+model ShiftAssignment {
+  id            String    @id @default(cuid())
+  staff         Staff     @relation(fields: [staffId], references: [id])
+  staffId       String
+  shiftType     ShiftType @relation(fields: [shiftTypeId], references: [id])
+  shiftTypeId   String
+  daysOfWeek    Int[] // 0=Sun ... 6=Sat
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+
+  @@index([staffId])
+}
+
+model Device {
+  id          String   @id @default(cuid())
+  name        String // "Main Entrance K40"
+  localIp     String
+  location    String
+  lastSyncAt  DateTime?
+  attendances Attendance[]
+}
+
+model Attendance {
+  id        String           @id @default(cuid())
+  staff     Staff            @relation(fields: [staffId], references: [id])
+  staffId   String
+  device    Device           @relation(fields: [deviceId], references: [id])
+  deviceId  String
+  timestamp DateTime
+  type      AttendanceType
+  status    AttendanceStatus
+  source    AttendanceSource
+  createdAt DateTime         @default(now())
+
+  @@index([staffId, timestamp])
+  @@index([deviceId])
+}
+
+enum AttendanceType {
+  CHECK_IN
+  CHECK_OUT
+}
+
+enum AttendanceStatus {
+  ON_TIME
+  LATE
+  EARLY_DEPARTURE
+  MANUAL_OVERRIDE
+}
+
+enum AttendanceSource {
+  BIOMETRIC
+  MANUAL
+}
+
+// ---------------------------------------------------------------------------
+// Leave
+// ---------------------------------------------------------------------------
+
+model LeaveType {
+  id                 String         @id @default(cuid())
+  name               String // Annual, Sick, Casual, Maternity/Paternity, Unpaid
+  defaultDaysPerYear Int
+  requests           LeaveRequest[]
+}
+
+model LeaveRequest {
+  id          String      @id @default(cuid())
+  staff       Staff       @relation(fields: [staffId], references: [id])
+  staffId     String
+  leaveType   LeaveType   @relation(fields: [leaveTypeId], references: [id])
+  leaveTypeId String
+  startDate   DateTime
+  endDate     DateTime
+  reason      String?
+  status      LeaveStatus @default(PENDING)
+  approvedBy  String?
+  decidedAt   DateTime?
+  createdAt   DateTime    @default(now())
+
+  @@index([staffId])
+  @@index([status])
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ---------------------------------------------------------------------------
+// Documents & audit
+// ---------------------------------------------------------------------------
+
+model StaffDocument {
+  id         String    @id @default(cuid())
+  staff      Staff     @relation(fields: [staffId], references: [id])
+  staffId    String
+  label      String // "ID Card", "Contract", "Certification"
+  fileUrl    String
+  expiresAt  DateTime?
+  uploadedAt DateTime  @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String // admin/user who made the change
+  action     String // "MANUAL_ATTENDANCE_OVERRIDE", "STAFF_EDITED", etc.
+  targetType String // "Attendance", "Staff", "LeaveRequest"
+  targetId   String
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([targetType, targetId])
+}
+
+// ---------------------------------------------------------------------------
+// Auth (Better Auth schema — Lucia is deprecated as of 2025; Better Auth is
+// the actively maintained successor recommended for new TypeScript projects)
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  name          String?
+  role          StaffRole @default(SUPPORT_STAFF)
+
+  staff   Staff?  @relation(fields: [staffId], references: [id])
+  staffId String? @unique
+
+  sessions Session[]
+  accounts Account[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId             String
+  providerId            String
+  issuer                String
+  password              String?
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([issuer, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
