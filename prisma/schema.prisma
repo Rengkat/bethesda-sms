@@ -21,6 +21,7 @@ model Staff {
   email              String?   @unique
   phone              String?
   role               StaffRole
+  category           StaffCategory // Teaching / Non-teaching (academic vs non-academic)
   department         Department @relation(fields: [departmentId], references: [id])
   departmentId       String
   employmentType     EmploymentType
@@ -29,10 +30,26 @@ model Staff {
   dateExited         DateTime?
   active             Boolean   @default(true)
 
+  // --- Personal / HR detail ---
+  dateOfBirth           DateTime?
+  gender                Gender?
+  maritalStatus         MaritalStatus?
+  nationality           String?
+  stateOfOrigin         String?
+  homeAddress           String?
+  nextOfKinName         String?
+  nextOfKinPhone        String?
+  nextOfKinRelationship String?
+  bankName              String?
+  bankAccountNumber     String?
+  bankAccountName       String?
+  passportPhotoUrl      String?
+
   shiftAssignments ShiftAssignment[]
   attendances      Attendance[]
   leaveRequests    LeaveRequest[]
   documents        StaffDocument[]
+  qualifications   Qualification[]
   user             User?
 
   createdAt DateTime @default(now())
@@ -40,6 +57,7 @@ model Staff {
 
   @@index([departmentId])
   @@index([active])
+  @@index([category])
 }
 
 enum StaffRole {
@@ -51,10 +69,27 @@ enum StaffRole {
   SUPPORT_STAFF
 }
 
+enum StaffCategory {
+  TEACHING     // Academic staff — classroom/instructional roles
+  NON_TEACHING // Non-academic staff — admin, kitchen, security, grounds, etc.
+}
+
 enum EmploymentType {
   FULL_TIME
   PART_TIME
   VOLUNTEER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
 }
 
 model Department {
@@ -167,18 +202,69 @@ enum LeaveStatus {
 }
 
 // ---------------------------------------------------------------------------
-// Documents & audit
+// Qualifications, results & documents
 // ---------------------------------------------------------------------------
 
-model StaffDocument {
-  id         String    @id @default(cuid())
-  staff      Staff     @relation(fields: [staffId], references: [id])
-  staffId    String
-  label      String // "ID Card", "Contract", "Certification"
-  fileUrl    String
-  expiresAt  DateTime?
-  uploadedAt DateTime  @default(now())
+// A staff member's academic/professional qualifications — WAEC/SSCE results,
+// NCE, degrees, professional certifications, etc. Each can optionally point
+// to the scanned certificate/result slip stored as a StaffDocument.
+model Qualification {
+  id                 String            @id @default(cuid())
+  staff              Staff             @relation(fields: [staffId], references: [id])
+  staffId            String
+  level              QualificationLevel
+  awardingBody       String // "WAEC", "University of Lagos", "TRCN", etc.
+  fieldOfStudy       String? // "Special Education", "Guidance & Counselling"
+  grade              String? // "Distinction", "Second Class Upper", "Credit"
+  yearObtained       Int?
+  certificateDoc     StaffDocument?    @relation(fields: [certificateDocId], references: [id])
+  certificateDocId   String?           @unique
+  createdAt          DateTime          @default(now())
+
+  @@index([staffId])
 }
+
+enum QualificationLevel {
+  SSCE_WAEC
+  OND
+  NCE
+  HND
+  BSC
+  PGD
+  MSC
+  PHD
+  PROFESSIONAL_CERT // e.g. TRCN, ICAN, first aid, sign language cert
+  OTHER
+}
+
+model StaffDocument {
+  id           String       @id @default(cuid())
+  staff        Staff        @relation(fields: [staffId], references: [id])
+  staffId      String
+  type         DocumentType
+  label        String // free-text description, e.g. "2021 NCE Certificate"
+  fileUrl      String
+  expiresAt    DateTime?
+  uploadedAt   DateTime     @default(now())
+
+  qualification Qualification?
+
+  @@index([staffId])
+  @@index([type])
+}
+
+enum DocumentType {
+  ID_CARD
+  CONTRACT
+  QUALIFICATION_CERTIFICATE // degree/NCE/professional certs
+  EXAM_RESULT               // WAEC/SSCE result slips etc.
+  MEDICAL_REPORT
+  OTHER
+}
+
+// ---------------------------------------------------------------------------
+// Audit
+// ---------------------------------------------------------------------------
 
 model AuditLog {
   id         String   @id @default(cuid())
