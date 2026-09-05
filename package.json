@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "eslint"
   },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "dependencies": {
     "@node-rs/argon2": "^2.1.0",
     "@prisma/adapter-pg": "^7.10.0",

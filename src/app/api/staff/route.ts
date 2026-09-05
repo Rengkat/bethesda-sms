@@ -20,11 +20,32 @@ const createStaffSchema = z.object({
     "HOUSE_PARENT",
     "SUPPORT_STAFF",
   ]),
+  category: z.enum(["TEACHING", "NON_TEACHING"]),
   employmentType: z.enum(["FULL_TIME", "PART_TIME", "VOLUNTEER"]),
   dateHired: z.string().min(1),
   isVisuallyImpaired: z
     .union([z.literal("on"), z.literal("true")])
     .optional(),
+
+  // Personal detail — all optional at intake, filled in over time.
+  dateOfBirth: z.string().optional().or(z.literal("")),
+  gender: z.enum(["MALE", "FEMALE"]).optional().or(z.literal("")),
+  maritalStatus: z
+    .enum(["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"])
+    .optional()
+    .or(z.literal("")),
+  nationality: z.string().optional().or(z.literal("")),
+  stateOfOrigin: z.string().optional().or(z.literal("")),
+  homeAddress: z.string().optional().or(z.literal("")),
+  nextOfKinName: z.string().optional().or(z.literal("")),
+  nextOfKinPhone: z.string().optional().or(z.literal("")),
+  nextOfKinRelationship: z.string().optional().or(z.literal("")),
+  bankName: z.string().optional().or(z.literal("")),
+  bankAccountName: z.string().optional().or(z.literal("")),
+  bankAccountNumber: z.string().optional().or(z.literal("")),
+
+  // Only ever honoured if the caller has staff:edit-salary — see below.
+  currentSalary: z.string().optional().or(z.literal("")),
 });
 
 export async function GET() {
@@ -58,6 +79,11 @@ export async function POST(req: NextRequest) {
 
   const data = parsed.data;
 
+  // Salary is stripped server-side (not just hidden client-side) for any
+  // role without staff:edit-salary, even if a payload somehow included it —
+  // never trust field-level authorization to the client.
+  const canSetSalary = can(role as never, "staff:edit-salary");
+
   const staff = await prisma.staff.create({
     data: {
       fullName: data.fullName,
@@ -66,9 +92,25 @@ export async function POST(req: NextRequest) {
       phone: data.phone || undefined,
       departmentId: data.departmentId,
       role: data.role,
+      category: data.category,
       employmentType: data.employmentType,
       dateHired: new Date(data.dateHired),
       isVisuallyImpaired: data.isVisuallyImpaired === "on" || data.isVisuallyImpaired === "true",
+
+      dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
+      gender: data.gender || undefined,
+      maritalStatus: data.maritalStatus || undefined,
+      nationality: data.nationality || undefined,
+      stateOfOrigin: data.stateOfOrigin || undefined,
+      homeAddress: data.homeAddress || undefined,
+      nextOfKinName: data.nextOfKinName || undefined,
+      nextOfKinPhone: data.nextOfKinPhone || undefined,
+      nextOfKinRelationship: data.nextOfKinRelationship || undefined,
+      bankName: data.bankName || undefined,
+      bankAccountName: data.bankAccountName || undefined,
+      bankAccountNumber: data.bankAccountNumber || undefined,
+
+      currentSalary: canSetSalary && data.currentSalary ? data.currentSalary : undefined,
     },
   });
 

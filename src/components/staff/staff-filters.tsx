@@ -4,7 +4,7 @@ import { Search } from "lucide-react";
 import { useStaffFiltersStore } from "@/store/staff-filters-store";
 
 export function StaffFilters() {
-  const { search, status, setSearch, setStatus } = useStaffFiltersStore();
+  const { search, status, category, setSearch, setStatus, setCategory } = useStaffFiltersStore();
 
   return (
     <div className="flex flex-col sm:flex-row gap-3">
@@ -27,6 +27,21 @@ export function StaffFilters() {
       </div>
 
       <div>
+        <label htmlFor="staff-category" className="sr-only">
+          Filter by category
+        </label>
+        <select
+          id="staff-category"
+          value={category}
+          onChange={(e) => setCategory(e.target.value as "TEACHING" | "NON_TEACHING" | "all")}
+          className="rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm focus-visible:outline-none">
+          <option value="all">All categories</option>
+          <option value="TEACHING">Teaching</option>
+          <option value="NON_TEACHING">Non-teaching</option>
+        </select>
+      </div>
+
+      <div>
         <label htmlFor="staff-status" className="sr-only">
           Filter by status
         </label>
@@ -34,8 +49,7 @@ export function StaffFilters() {
           id="staff-status"
           value={status}
           onChange={(e) => setStatus(e.target.value as "active" | "inactive" | "all")}
-          className="rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm focus-visible:outline-none"
-        >
+          className="rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm focus-visible:outline-none">
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
           <option value="all">All statuses</option>

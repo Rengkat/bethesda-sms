@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PencilLine, Fingerprint } from "lucide-react";
+import { PencilLine, Fingerprint, LogIn } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Card } from "@/components/ui/card";
@@ -29,12 +29,20 @@ export default async function AttendancePage() {
         title="Attendance"
         description={`Daily view — ${formatDate(today)}`}
         actions={
-          <Button asChild variant="secondary">
-            <Link href="/attendance/manual-entry">
-              <PencilLine className="h-4 w-4" aria-hidden="true" />
-              Manual entry
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild>
+              <Link href="/attendance/sign">
+                <LogIn className="h-4 w-4" aria-hidden="true" />
+                Sign in / out
+              </Link>
+            </Button>
+            <Button asChild variant="secondary">
+              <Link href="/attendance/manual-entry">
+                <PencilLine className="h-4 w-4" aria-hidden="true" />
+                Manual entry
+              </Link>
+            </Button>
+          </div>
         }
       />
 
@@ -71,7 +79,7 @@ export default async function AttendancePage() {
                         {a.status.replace("_", " ")}
                       </Badge>
                     </td>
-                    <td className="px-5 py-3 text-muted">{a.source === "BIOMETRIC" ? "Biometric" : "Manual"}</td>
+                    <td className="px-5 py-3 text-muted">{formatSource(a.source)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -81,4 +89,10 @@ export default async function AttendancePage() {
       </Card>
     </div>
   );
+}
+
+function formatSource(source: string) {
+  if (source === "BIOMETRIC") return "Biometric";
+  if (source === "WEB_SELF") return "Self sign-in";
+  return "Manual";
 }

@@ -1,6 +1,8 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { emailOTP } from "better-auth/plugins";
 import { prisma } from "@/lib/prisma";
+import { sendPasswordResetOTP } from "@/lib/notifications";
 
 /**
  * Better Auth configuration.
@@ -40,6 +42,26 @@ export const auth = betterAuth({
       },
     },
   },
+  plugins: [
+    // Admins/HR forgetting their password is the whole reason this exists —
+    // a 6-digit code emailed to them, rather than a reset link, since it's
+    // simpler to key in on a shared front-desk computer and doesn't depend
+    // on the email client rendering a clickable link correctly.
+    emailOTP({
+      otpLength: 6,
+      expiresIn: 60 * 5, // 5 minutes
+      allowedAttempts: 3,
+      storeOTP: "hashed", // the code emailed to the user is unaffected — only what's persisted in Verification is hashed
+      async sendVerificationOTP({ email, otp, type }) {
+        if (type === "forget-password") {
+          await sendPasswordResetOTP({ email, otp });
+        }
+        // "sign-in" / "email-verification" / "change-email" OTPs aren't
+        // used anywhere in this app (no self-service sign-up, no email
+        // self-change flow) — nothing to send for those types.
+      },
+    }),
+  ],
 });
 
 export type Session = typeof auth.$Infer.Session;

@@ -12,12 +12,27 @@ export function StaffTable({ staff }: { staff: StaffRow[] }) {
         <caption className="sr-only">List of staff members</caption>
         <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-muted">
           <tr>
-            <th scope="col" className="px-5 py-3 font-medium">Name</th>
-            <th scope="col" className="px-5 py-3 font-medium">Staff code</th>
-            <th scope="col" className="px-5 py-3 font-medium">Department</th>
-            <th scope="col" className="px-5 py-3 font-medium">Role</th>
-            <th scope="col" className="px-5 py-3 font-medium">Status</th>
-            <th scope="col" className="px-5 py-3 font-medium">Hired</th>
+            <th scope="col" className="px-5 py-3 font-medium">
+              Name
+            </th>
+            <th scope="col" className="px-5 py-3 font-medium">
+              Staff code
+            </th>
+            <th scope="col" className="px-5 py-3 font-medium">
+              Department
+            </th>
+            <th scope="col" className="px-5 py-3 font-medium">
+              Role
+            </th>
+            <th scope="col" className="px-5 py-3 font-medium">
+              Category
+            </th>
+            <th scope="col" className="px-5 py-3 font-medium">
+              Status
+            </th>
+            <th scope="col" className="px-5 py-3 font-medium">
+              Hired
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -26,14 +41,18 @@ export function StaffTable({ staff }: { staff: StaffRow[] }) {
               <td className="px-5 py-3 font-medium text-foreground">
                 <Link
                   href={`/staff/${person.id}`}
-                  className="hover:text-brand-blue-dark hover:underline"
-                >
+                  className="hover:text-brand-blue-dark hover:underline">
                   {person.fullName}
                 </Link>
               </td>
               <td className="px-5 py-3 text-muted">{person.staffCode}</td>
               <td className="px-5 py-3 text-muted">{person.department.name}</td>
-              <td className="px-5 py-3 text-muted">{formatRole(person.role)}</td>
+              <td className="px-5 py-3 text-muted">{formatLabel(person.role)}</td>
+              <td className="px-5 py-3">
+                <Badge tone={person.category === "TEACHING" ? "brand" : "neutral"}>
+                  {formatLabel(person.category)}
+                </Badge>
+              </td>
               <td className="px-5 py-3">
                 <Badge tone={person.active ? "success" : "neutral"}>
                   {person.active ? "Active" : "Inactive"}
@@ -48,8 +67,8 @@ export function StaffTable({ staff }: { staff: StaffRow[] }) {
   );
 }
 
-function formatRole(role: string) {
-  return role
+function formatLabel(value: string) {
+  return value
     .toLowerCase()
     .split("_")
     .map((w) => w[0].toUpperCase() + w.slice(1))

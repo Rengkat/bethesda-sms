@@ -10,6 +10,34 @@ const FROM_ADDRESS = "Bethesda Staff Management <no-reply@bethesdahomefortheblin
  * keep working even before notifications are configured.
  */
 
+export async function sendPasswordResetOTP(input: { email: string; otp: string }) {
+  if (!resend) {
+    // Unlike the other notifications here, a missing key on this one means
+    // someone literally cannot get back into their account via this flow —
+    // worth being loud about. In development only, the code itself is
+    // logged so the flow is testable without Resend configured; in
+    // production we never write an OTP to logs, since logs are typically
+    // less tightly access-controlled than email.
+    if (process.env.NODE_ENV === "production") {
+      console.error(
+        `[notifications] RESEND_API_KEY not set — password reset OTP for ${input.email} could NOT be delivered. Set RESEND_API_KEY so admins can actually recover their accounts.`,
+      );
+    } else {
+      console.warn(
+        `[notifications] RESEND_API_KEY not set — password reset OTP for ${input.email}: ${input.otp} (dev-only log; this code is never logged in production).`,
+      );
+    }
+    return;
+  }
+
+  await resend.emails.send({
+    from: FROM_ADDRESS,
+    to: input.email,
+    subject: "Your password reset code",
+    text: `Your Bethesda SMS password reset code is ${input.otp}. It expires in 5 minutes. If you didn't request this, you can ignore this email — your password won't change unless this code is used.`,
+  });
+}
+
 export async function sendLateCheckInAlert(input: {
   supervisorEmail: string;
   staffName: string;

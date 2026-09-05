@@ -7,6 +7,9 @@ import {
   CalendarCheck,
   BarChart3,
   Settings,
+  Users2,
+  HandCoins,
+  Wallet,
 } from "lucide-react";
 
 export type NavItem = {
@@ -35,6 +38,22 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["SUPER_ADMIN", "HR_ADMIN", "SUPERVISOR"],
   },
   { label: "Leave", href: "/leave", icon: CalendarCheck },
+  // Any signed-in staff member may need to log a visitor at the front
+  // desk, so this is intentionally not role-restricted — see the comment
+  // in src/app/api/visitors/route.ts.
+  { label: "Visitors", href: "/visitors", icon: Users2 },
+  {
+    label: "Donations",
+    href: "/donations",
+    icon: HandCoins,
+    roles: ["SUPER_ADMIN", "HR_ADMIN"],
+  },
+  {
+    label: "Payroll",
+    href: "/payroll",
+    icon: Wallet,
+    roles: ["SUPER_ADMIN", "HR_ADMIN"],
+  },
   {
     label: "Reports",
     href: "/reports",

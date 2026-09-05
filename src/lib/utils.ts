@@ -25,6 +25,16 @@ export function formatTime(date: Date | string) {
   }).format(d);
 }
 
+/** Format a number/string/Prisma Decimal as Naira currency, e.g. "₦150,000.00". */
+export function formatNaira(amount: number | string | { toString(): string }) {
+  const value = typeof amount === "number" ? amount : Number(amount.toString());
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    minimumFractionDigits: 2,
+  }).format(value);
+}
+
 export function initials(fullName: string) {
   return fullName
     .split(" ")

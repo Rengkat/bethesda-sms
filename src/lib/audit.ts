@@ -4,7 +4,7 @@ import type { Prisma } from "@/generated/prisma/client";
 type WriteAuditLogInput = {
   actorId: string;
   action: string; // e.g. "MANUAL_ATTENDANCE_OVERRIDE", "STAFF_EDITED"
-  targetType: "Attendance" | "Staff" | "LeaveRequest" | "Device" | "Settings";
+  targetType: "Attendance" | "Staff" | "LeaveRequest" | "Device" | "Settings" | "Donation" | "Visitor" | "PayrollPeriod";
   targetId: string;
   details?: Prisma.InputJsonValue;
 };

@@ -1,8 +1,15 @@
+import Link from "next/link";
 import { LoginForm } from "@/components/shared/login-form";
 
 export const metadata = { title: "Sign in" };
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reset?: string }>;
+}) {
+  const { reset } = await searchParams;
+
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* Brand panel — hidden on small screens to keep the form the focus */}
@@ -39,7 +46,17 @@ export default function LoginPage() {
           <p className="mt-1 text-muted text-sm">
             Use the email and password issued by HR.
           </p>
+          {reset === "success" && (
+            <div role="status" className="mt-4 rounded-lg bg-green-50 text-success text-sm px-4 py-3">
+              Password updated — sign in with your new password.
+            </div>
+          )}
           <LoginForm />
+          <p className="mt-4 text-center text-sm">
+            <Link href="/forgot-password" className="text-brand underline underline-offset-2">
+              Forgot password?
+            </Link>
+          </p>
         </div>
       </div>
     </div>
