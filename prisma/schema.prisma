@@ -21,7 +21,11 @@ model Staff {
   email              String?   @unique
   phone              String?
   role               StaffRole
+<<<<<<< HEAD
   category           StaffCategory? // Teaching / Non-teaching (academic vs non-academic)
+=======
+  category           StaffCategory // Teaching / Non-teaching (academic vs non-academic)
+>>>>>>> 288d308ffa2702d476558013447f9d26ce526285
   department         Department @relation(fields: [departmentId], references: [id])
   departmentId       String
   employmentType     EmploymentType
@@ -45,6 +49,7 @@ model Staff {
   bankAccountName       String?
   passportPhotoUrl      String?
 
+<<<<<<< HEAD
   // Monthly gross salary. Deliberately kept on Staff rather than a separate
   // payroll table since this app does not run payroll — it just needs a
   // figure for HR planning/budgeting. Read access is restricted in the UI
@@ -62,6 +67,14 @@ model Staff {
   queriesIssued      StaffQuery[]    @relation("QueriesIssued")
   payslips           Payslip[]
   user               User?
+=======
+  shiftAssignments ShiftAssignment[]
+  attendances      Attendance[]
+  leaveRequests    LeaveRequest[]
+  documents        StaffDocument[]
+  qualifications   Qualification[]
+  user             User?
+>>>>>>> 288d308ffa2702d476558013447f9d26ce526285
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -221,6 +234,7 @@ enum LeaveStatus {
 // NCE, degrees, professional certifications, etc. Each can optionally point
 // to the scanned certificate/result slip stored as a StaffDocument.
 model Qualification {
+<<<<<<< HEAD
   id               String             @id @default(cuid())
   staff            Staff              @relation(fields: [staffId], references: [id])
   staffId          String
@@ -265,6 +279,52 @@ model StaffDocument {
   @@index([type])
 }
 
+=======
+  id                 String            @id @default(cuid())
+  staff              Staff             @relation(fields: [staffId], references: [id])
+  staffId            String
+  level              QualificationLevel
+  awardingBody       String // "WAEC", "University of Lagos", "TRCN", etc.
+  fieldOfStudy       String? // "Special Education", "Guidance & Counselling"
+  grade              String? // "Distinction", "Second Class Upper", "Credit"
+  yearObtained       Int?
+  certificateDoc     StaffDocument?    @relation(fields: [certificateDocId], references: [id])
+  certificateDocId   String?           @unique
+  createdAt          DateTime          @default(now())
+
+  @@index([staffId])
+}
+
+enum QualificationLevel {
+  SSCE_WAEC
+  OND
+  NCE
+  HND
+  BSC
+  PGD
+  MSC
+  PHD
+  PROFESSIONAL_CERT // e.g. TRCN, ICAN, first aid, sign language cert
+  OTHER
+}
+
+model StaffDocument {
+  id           String       @id @default(cuid())
+  staff        Staff        @relation(fields: [staffId], references: [id])
+  staffId      String
+  type         DocumentType
+  label        String // free-text description, e.g. "2021 NCE Certificate"
+  fileUrl      String
+  expiresAt    DateTime?
+  uploadedAt   DateTime     @default(now())
+
+  qualification Qualification?
+
+  @@index([staffId])
+  @@index([type])
+}
+
+>>>>>>> 288d308ffa2702d476558013447f9d26ce526285
 enum DocumentType {
   ID_CARD
   CONTRACT
@@ -275,6 +335,7 @@ enum DocumentType {
 }
 
 // ---------------------------------------------------------------------------
+<<<<<<< HEAD
 // Visitors (front-desk sign-in book, digitised)
 // ---------------------------------------------------------------------------
 
@@ -498,6 +559,8 @@ model Payslip {
 }
 
 // ---------------------------------------------------------------------------
+=======
+>>>>>>> 288d308ffa2702d476558013447f9d26ce526285
 // Audit
 // ---------------------------------------------------------------------------
 
