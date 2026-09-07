@@ -14,7 +14,7 @@ export function Topbar({
   const openMobileNav = useUIStore((s) => s.openMobileNav);
 
   return (
-    <header className="sticky top-0 z-30 h-16 flex items-center justify-between gap-3 border-b border-border bg-white px-4 lg:px-6">
+    <header className="sticky top-0 z-30 h-16 flex items-center justify-between gap-3 border-b border-border bg-white px-4 lg:px-6 print:hidden">
       <button
         type="button"
         onClick={openMobileNav}

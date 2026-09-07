@@ -606,6 +606,49 @@ same recurring category (`Cannot find module
 '@/generated/prisma/client'`, resolved by `npx prisma generate`) plus
 the still-unresolved `staff-filters.tsx` gap from several passes ago.
 
+## This pass: printable staff ID cards
+
+**New feature, not a one-off design** — `/staff/[id]/id-card`, linked from
+the staff detail page header. Data-driven from the real staff record, so
+it works for anyone, not just the person used to spec it.
+
+- **CR80 portrait** (2.125" × 3.375", standard lanyard-card size). Front
+  and back each force a print page break at that exact size
+  (`@page { size: 2.125in 3.375in }`), so printing produces two
+  ready-to-laminate cards, not one oddly-scaled page.
+- **Design grounded in the organisation**, not a generic badge template:
+  the recurring divider between sections is a row of dots echoing a
+  braille cell — the one deliberate signature element, used consistently
+  rather than scattered decoration, chosen because the subject is
+  literally a school for the blind. Colors and the "BHB" mark reuse the
+  app's existing brand palette (`#2f3fe0` / `#212ea8` / `#16161d`) rather
+  than inventing a new one, since this is an official document that
+  should look like it belongs to the same organisation as the rest of the
+  app.
+- **Front**: photo (or an initials avatar if none is on file), name,
+  role, a Teaching/Non-teaching pill, staff ID, department, employment
+  type. **Back**: "if found, return to" the school's actual address,
+  emergency contact, date of birth, a signature line.
+- Deliberately doesn't put "visually impaired" on the card itself — it's
+  a private HR field (already informing "UI/communication preferences,
+  not access control" per the original schema comment), not something
+  that belongs on a badge other people read. It's inherently encoded in
+  the `BHB-ST-`/`BHB-VI-` staff code prefix already, which is what's
+  printed.
+- The print CSS needed the dashboard's own sidebar/topbar hidden and its
+  layout padding zeroed specifically when printing (`print:hidden`,
+  `print:p-0`, `print:pl-0` on `Sidebar`/`Topbar`/`DashboardShell`) —
+  otherwise the app chrome around the card would print on the same
+  physical page.
+- No photo on file → an initials avatar in a brand-colored gradient
+  circle, same pattern already used elsewhere in the app (staff detail
+  hero, table avatars) — nothing new invented here.
+
+A standalone HTML preview using this same design (plain CSS, no
+Tailwind/build step, opens directly in a browser) was also generated for
+one real staff record to sanity-check the design before it went into the
+app — not part of the app itself, just how this was previewed.
+
 ## Not yet built (flagged, not silently skipped)
 
 - Editing existing departments/shift-types/devices (create + list +

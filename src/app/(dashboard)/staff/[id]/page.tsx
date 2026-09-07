@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { headers } from "next/headers";
 import Image from "next/image";
-import { Pencil, Mail, Phone, Building2, GraduationCap, FileText, Gavel as GavelIcon, Wallet } from "lucide-react";
+import { Pencil, Mail, Phone, Building2, GraduationCap, FileText, Gavel as GavelIcon, Wallet, IdCard } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -103,14 +103,22 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
                 )}
               </div>
             </div>
-            {canEditStaff && (
-              <Button asChild variant="secondary" className="shrink-0 bg-white/95 hover:bg-white">
-                <Link href={`/staff/${staff.id}/edit`}>
-                  <Pencil className="h-4 w-4" aria-hidden="true" />
-                  Edit staff
+            <div className="flex items-center gap-2 shrink-0">
+              <Button asChild variant="secondary" className="bg-white/95 hover:bg-white">
+                <Link href={`/staff/${staff.id}/id-card`}>
+                  <IdCard className="h-4 w-4" aria-hidden="true" />
+                  ID card
                 </Link>
               </Button>
-            )}
+              {canEditStaff && (
+                <Button asChild variant="secondary" className="bg-white/95 hover:bg-white">
+                  <Link href={`/staff/${staff.id}/edit`}>
+                    <Pencil className="h-4 w-4" aria-hidden="true" />
+                    Edit staff
+                  </Link>
+                </Button>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex flex-wrap gap-x-8 gap-y-2 px-6 py-4 sm:px-8 text-sm text-muted">

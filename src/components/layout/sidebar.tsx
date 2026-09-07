@@ -19,7 +19,7 @@ export function Sidebar({ role }: { role?: string }) {
   const items = NAV_ITEMS.filter((item) => !item.roles || (role && item.roles.includes(role as (typeof item.roles)[number])));
 
   return (
-    <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 bg-brand-navy text-white">
+    <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 bg-brand-navy text-white print:hidden">
       <div className="h-16 flex items-center px-5 border-b border-white/10">
         <BrandLogo variant="dark" />
       </div>
