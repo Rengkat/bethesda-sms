@@ -92,39 +92,12 @@ export function PayrollGenerateButton() {
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="p-late" className="block text-sm font-medium text-foreground mb-1.5">
-                Deduction per late day (₦)
-              </label>
-              <input
-                id="p-late"
-                name="lateDeductionPerOccurrence"
-                type="number"
-                min={0}
-                defaultValue={0}
-                className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm focus-visible:outline-none"
-              />
-            </div>
-            <div>
-              <label htmlFor="p-absence" className="block text-sm font-medium text-foreground mb-1.5">
-                Deduction per absent day (₦)
-              </label>
-              <input
-                id="p-absence"
-                name="absenceDeductionPerOccurrence"
-                type="number"
-                min={0}
-                defaultValue={0}
-                className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm focus-visible:outline-none"
-              />
-            </div>
-          </div>
-
           <p className="text-xs text-muted">
-            Leave both at 0 to only apply resolved query deductions. Every active staff member
-            with a salary on file gets a payslip — a snapshot of their salary at the time you
-            generate this, plus these deductions.
+            Every active staff member with a salary on file gets a payslip — a snapshot of their
+            salary at the time you generate this, minus any resolved query or ad-hoc deduction not
+            yet claimed by an earlier payslip (any reason — lateness, misconduct, policy violation,
+            a salary advance, etc.). There&apos;s nothing to configure here: deductions are set on
+            each staff profile, not as a blanket rate at generation time.
           </p>
 
           <div className="flex justify-end gap-3">

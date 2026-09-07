@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
-import type { Donation, Staff } from "@/generated/prisma/client";
+import type { serializeDonationForClient } from "@/lib/serialize";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 
@@ -26,7 +26,7 @@ function toDateInputValue(date: Date) {
   return new Date(date).toISOString().slice(0, 10);
 }
 
-export function DonationEditButton({ donation, staff }: { donation: Donation; staff: Staff[] }) {
+export function DonationEditButton({ donation }: { donation: ReturnType<typeof serializeDonationForClient> }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [donationType, setDonationType] = useState<string>(donation.donationType);
@@ -66,7 +66,7 @@ export function DonationEditButton({ donation, staff }: { donation: Donation; st
         Edit
       </Button>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Edit donation">
+      <Modal open={open} onClose={() => setOpen(false)} title="Edit donation" size="lg">
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {error && (
             <div role="alert" className="rounded-lg bg-danger-bg text-danger text-sm px-4 py-3">
@@ -78,7 +78,7 @@ export function DonationEditButton({ donation, staff }: { donation: Donation; st
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="de-donorType" className="block text-sm font-medium text-foreground mb-1.5">
+              <label htmlFor="de-donorType" className="block text-left text-sm font-medium text-foreground mb-1.5">
                 Donor type
               </label>
               <select
@@ -97,7 +97,7 @@ export function DonationEditButton({ donation, staff }: { donation: Donation; st
           </div>
 
           <div>
-            <label htmlFor="de-donationType" className="block text-sm font-medium text-foreground mb-1.5">
+            <label htmlFor="de-donationType" className="block text-left text-sm font-medium text-foreground mb-1.5">
               Donation type
             </label>
             <select
@@ -116,7 +116,7 @@ export function DonationEditButton({ donation, staff }: { donation: Donation; st
 
           {donationType === "IN_KIND" ? (
             <div>
-              <label htmlFor="de-inKind" className="block text-sm font-medium text-foreground mb-1.5">
+              <label htmlFor="de-inKind" className="block text-left text-sm font-medium text-foreground mb-1.5">
                 Description of goods/equipment
               </label>
               <textarea
@@ -144,35 +144,17 @@ export function DonationEditButton({ donation, staff }: { donation: Donation; st
             <Field id="de-receiptNumber" name="receiptNumber" label="Receipt number" defaultValue={donation.receiptNumber ?? ""} />
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Field
-              id="de-donatedAt"
-              name="donatedAt"
-              label="Date received"
-              type="date"
-              required
-              defaultValue={toDateInputValue(donation.donatedAt)}
-            />
-            <div>
-              <label htmlFor="de-receivedById" className="block text-sm font-medium text-foreground mb-1.5">
-                Received by
-              </label>
-              <select
-                id="de-receivedById"
-                name="receivedById"
-                required
-                defaultValue={donation.receivedById}
-                className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm bg-white focus-visible:outline-none"
-              >
-                {staff.map((s) => (
-                  <option key={s.id} value={s.id}>{s.fullName}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <Field
+            id="de-donatedAt"
+            name="donatedAt"
+            label="Date received"
+            type="date"
+            required
+            defaultValue={toDateInputValue(donation.donatedAt)}
+          />
 
           <div>
-            <label htmlFor="de-notes" className="block text-sm font-medium text-foreground mb-1.5">
+            <label htmlFor="de-notes" className="block text-left text-sm font-medium text-foreground mb-1.5">
               Notes
             </label>
             <textarea
@@ -215,7 +197,7 @@ function Field({
 }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-foreground mb-1.5">
+      <label htmlFor={id} className="block text-left text-sm font-medium text-foreground mb-1.5">
         {label} {required && <span aria-hidden="true">*</span>}
       </label>
       <input

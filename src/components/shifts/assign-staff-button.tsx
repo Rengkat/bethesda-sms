@@ -3,7 +3,6 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { UserPlus } from "lucide-react";
-import type { Staff } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 
@@ -24,7 +23,13 @@ export function AssignStaffButton({
 }: {
   shiftTypeId: string;
   shiftTypeName: string;
-  staff: Staff[];
+  // Deliberately a minimal shape, not the full Staff type — Staff carries
+  // `currentSalary` (a Prisma Decimal), and Decimal instances can't cross
+  // the server->client boundary as props (Next.js can only serialize
+  // plain objects). Selecting just what the dropdown needs on the server
+  // page avoids the crash instead of stringifying a field this component
+  // never uses anyway.
+  staff: { id: string; fullName: string; staffCode: string }[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);

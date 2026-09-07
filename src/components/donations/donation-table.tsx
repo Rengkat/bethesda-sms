@@ -1,12 +1,15 @@
-import type { Donation, Staff } from "@/generated/prisma/client";
+import Link from "next/link";
+import type { serializeDonationForClient } from "@/lib/serialize";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatNaira } from "@/lib/utils";
 import { DonationEditButton } from "./donation-edit-button";
 import { DonationVoidButton } from "./donation-void-button";
 
-type DonationRow = Donation & { receivedBy: Staff };
+type DonationForClient = ReturnType<typeof serializeDonationForClient> & {
+  visitor?: { id: string; fullName: string } | null;
+};
 
-export function DonationTable({ donations, staff }: { donations: DonationRow[]; staff: Staff[] }) {
+export function DonationTable({ donations }: { donations: DonationForClient[] }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -17,7 +20,6 @@ export function DonationTable({ donations, staff }: { donations: DonationRow[]; 
             <th scope="col" className="px-5 py-3 font-medium">Type</th>
             <th scope="col" className="px-5 py-3 font-medium">Amount / description</th>
             <th scope="col" className="px-5 py-3 font-medium">Purpose</th>
-            <th scope="col" className="px-5 py-3 font-medium">Received by</th>
             <th scope="col" className="px-5 py-3 font-medium">Date</th>
             <th scope="col" className="px-5 py-3 font-medium">
               <span className="sr-only">Actions</span>
@@ -32,6 +34,14 @@ export function DonationTable({ donations, staff }: { donations: DonationRow[]; 
                   {d.donorName} {d.voided && <Badge tone="danger" className="ml-1">Voided</Badge>}
                 </p>
                 <p className="text-muted text-xs">{formatLabel(d.donorType)}</p>
+                {d.visitor && (
+                  <Link
+                    href={`/visitors/${d.visitor.id}`}
+                    className="text-xs text-brand underline underline-offset-2"
+                  >
+                    From a visit
+                  </Link>
+                )}
                 {d.voided && d.voidReason && (
                   <p className="text-muted text-xs italic">Reason: {d.voidReason}</p>
                 )}
@@ -49,12 +59,11 @@ export function DonationTable({ donations, staff }: { donations: DonationRow[]; 
                   : "—"}
               </td>
               <td className="px-5 py-3 text-muted">{d.purpose ?? "—"}</td>
-              <td className="px-5 py-3 text-muted">{d.receivedBy.fullName}</td>
               <td className="px-5 py-3 text-muted">{formatDate(d.donatedAt)}</td>
               <td className="px-5 py-3">
                 {!d.voided && (
                   <div className="flex items-center justify-end gap-2">
-                    <DonationEditButton donation={d} staff={staff} />
+                    <DonationEditButton donation={d} />
                     <DonationVoidButton donationId={d.id} />
                   </div>
                 )}

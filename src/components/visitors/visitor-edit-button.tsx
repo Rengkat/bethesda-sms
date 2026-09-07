@@ -56,7 +56,7 @@ export function VisitorEditButton({ visitor }: { visitor: Visitor }) {
         Edit
       </Button>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Edit visitor entry">
+      <Modal open={open} onClose={() => setOpen(false)} title="Edit visitor entry" size="lg">
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {error && (
             <div role="alert" className="rounded-lg bg-danger-bg text-danger text-sm px-4 py-3">

@@ -20,6 +20,7 @@ export type Action =
   | "visitors:void"
   | "staff:issue-query"
   | "staff:resolve-query"
+  | "staff:issue-deduction"
   | "payroll:manage";
 
 const FULL_ACCESS: StaffRole[] = ["SUPER_ADMIN", "HR_ADMIN"];
@@ -53,6 +54,10 @@ const RULES: Record<Action, { full: StaffRole[]; scoped?: StaffRole[] }> = {
   // trust tier as salary itself.
   "staff:issue-query": { full: FULL_ACCESS, scoped: DEPARTMENT_SCOPED },
   "staff:resolve-query": { full: FULL_ACCESS },
+  // A direct salary deduction ("any other reason" — advance repayment,
+  // damaged equipment) is kept at the same trust tier as salary itself:
+  // Super Admin/HR Admin only, no department scope for a Supervisor.
+  "staff:issue-deduction": { full: FULL_ACCESS },
   "payroll:manage": { full: FULL_ACCESS },
 };
 

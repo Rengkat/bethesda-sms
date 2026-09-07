@@ -2,10 +2,19 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import type { Device, Staff } from "@/generated/prisma/client";
+import type { Device } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
 
-export function ManualEntryForm({ staff, devices }: { staff: Staff[]; devices: Device[] }) {
+export function ManualEntryForm({
+  staff,
+  devices,
+}: {
+  // Minimal shape, not the full Staff type — see the comment in
+  // assign-staff-button.tsx for why (Staff.currentSalary is a Prisma
+  // Decimal, which can't cross the server->client prop boundary).
+  staff: { id: string; fullName: string; staffCode: string }[];
+  devices: Device[];
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);

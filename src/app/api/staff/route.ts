@@ -5,10 +5,10 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { can } from "@/lib/permissions";
 import { writeAuditLog } from "@/lib/audit";
+import { generateStaffCode } from "@/lib/staff-code";
 
 const createStaffSchema = z.object({
   fullName: z.string().min(1),
-  staffCode: z.string().min(1),
   email: z.string().email().optional().or(z.literal("")),
   phone: z.string().optional().or(z.literal("")),
   departmentId: z.string().min(1),
@@ -78,16 +78,25 @@ export async function POST(req: NextRequest) {
   }
 
   const data = parsed.data;
+  const isVisuallyImpaired = data.isVisuallyImpaired === "on" || data.isVisuallyImpaired === "true";
+  // Generated here, not accepted from the client — see the schema comment
+  // above and lib/staff-code.ts for the BHB-ST-####/BHB-VI-#### scheme.
+  const staffCode = await generateStaffCode(isVisuallyImpaired);
 
   // Salary is stripped server-side (not just hidden client-side) for any
   // role without staff:edit-salary, even if a payload somehow included it —
   // never trust field-level authorization to the client.
   const canSetSalary = can(role as never, "staff:edit-salary");
 
-  const staff = await prisma.staff.create({
+  // Extremely unlikely (staffCode generation reads-then-writes, not
+  // atomic) but not impossible under concurrent creates — retry once
+  // with a freshly generated code rather than surfacing a raw 500 for a
+  // unique-constraint collision the requester can't do anything about.
+  async function createWithCode(code: string) {
+    return prisma.staff.create({
     data: {
       fullName: data.fullName,
-      staffCode: data.staffCode,
+      staffCode: code,
       email: data.email || undefined,
       phone: data.phone || undefined,
       departmentId: data.departmentId,
@@ -95,7 +104,7 @@ export async function POST(req: NextRequest) {
       category: data.category,
       employmentType: data.employmentType,
       dateHired: new Date(data.dateHired),
-      isVisuallyImpaired: data.isVisuallyImpaired === "on" || data.isVisuallyImpaired === "true",
+      isVisuallyImpaired,
 
       dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
       gender: data.gender || undefined,
@@ -112,7 +121,17 @@ export async function POST(req: NextRequest) {
 
       currentSalary: canSetSalary && data.currentSalary ? data.currentSalary : undefined,
     },
-  });
+    });
+  }
+
+  let staff;
+  try {
+    staff = await createWithCode(staffCode);
+  } catch (err) {
+    const isUniqueConflict = err instanceof Error && err.message.includes("Unique constraint");
+    if (!isUniqueConflict) throw err;
+    staff = await createWithCode(await generateStaffCode(isVisuallyImpaired));
+  }
 
   await writeAuditLog({
     actorId: session.user.id,

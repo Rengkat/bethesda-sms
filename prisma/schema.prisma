@@ -21,11 +21,7 @@ model Staff {
   email              String?   @unique
   phone              String?
   role               StaffRole
-<<<<<<< HEAD
   category           StaffCategory? // Teaching / Non-teaching (academic vs non-academic)
-=======
-  category           StaffCategory // Teaching / Non-teaching (academic vs non-academic)
->>>>>>> 288d308ffa2702d476558013447f9d26ce526285
   department         Department @relation(fields: [departmentId], references: [id])
   departmentId       String
   employmentType     EmploymentType
@@ -49,7 +45,6 @@ model Staff {
   bankAccountName       String?
   passportPhotoUrl      String?
 
-<<<<<<< HEAD
   // Monthly gross salary. Deliberately kept on Staff rather than a separate
   // payroll table since this app does not run payroll — it just needs a
   // figure for HR planning/budgeting. Read access is restricted in the UI
@@ -62,19 +57,12 @@ model Staff {
   leaveRequests      LeaveRequest[]
   documents          StaffDocument[]
   qualifications     Qualification[]
-  donationsReceived  Donation[]
   queriesReceived    StaffQuery[]    @relation("QueriesReceived")
   queriesIssued      StaffQuery[]    @relation("QueriesIssued")
+  deductionsReceived StaffDeduction[] @relation("DeductionsReceived")
+  deductionsIssued   StaffDeduction[] @relation("DeductionsIssued")
   payslips           Payslip[]
   user               User?
-=======
-  shiftAssignments ShiftAssignment[]
-  attendances      Attendance[]
-  leaveRequests    LeaveRequest[]
-  documents        StaffDocument[]
-  qualifications   Qualification[]
-  user             User?
->>>>>>> 288d308ffa2702d476558013447f9d26ce526285
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -234,7 +222,6 @@ enum LeaveStatus {
 // NCE, degrees, professional certifications, etc. Each can optionally point
 // to the scanned certificate/result slip stored as a StaffDocument.
 model Qualification {
-<<<<<<< HEAD
   id               String             @id @default(cuid())
   staff            Staff              @relation(fields: [staffId], references: [id])
   staffId          String
@@ -279,52 +266,6 @@ model StaffDocument {
   @@index([type])
 }
 
-=======
-  id                 String            @id @default(cuid())
-  staff              Staff             @relation(fields: [staffId], references: [id])
-  staffId            String
-  level              QualificationLevel
-  awardingBody       String // "WAEC", "University of Lagos", "TRCN", etc.
-  fieldOfStudy       String? // "Special Education", "Guidance & Counselling"
-  grade              String? // "Distinction", "Second Class Upper", "Credit"
-  yearObtained       Int?
-  certificateDoc     StaffDocument?    @relation(fields: [certificateDocId], references: [id])
-  certificateDocId   String?           @unique
-  createdAt          DateTime          @default(now())
-
-  @@index([staffId])
-}
-
-enum QualificationLevel {
-  SSCE_WAEC
-  OND
-  NCE
-  HND
-  BSC
-  PGD
-  MSC
-  PHD
-  PROFESSIONAL_CERT // e.g. TRCN, ICAN, first aid, sign language cert
-  OTHER
-}
-
-model StaffDocument {
-  id           String       @id @default(cuid())
-  staff        Staff        @relation(fields: [staffId], references: [id])
-  staffId      String
-  type         DocumentType
-  label        String // free-text description, e.g. "2021 NCE Certificate"
-  fileUrl      String
-  expiresAt    DateTime?
-  uploadedAt   DateTime     @default(now())
-
-  qualification Qualification?
-
-  @@index([staffId])
-  @@index([type])
-}
-
->>>>>>> 288d308ffa2702d476558013447f9d26ce526285
 enum DocumentType {
   ID_CARD
   CONTRACT
@@ -335,7 +276,6 @@ enum DocumentType {
 }
 
 // ---------------------------------------------------------------------------
-<<<<<<< HEAD
 // Visitors (front-desk sign-in book, digitised)
 // ---------------------------------------------------------------------------
 
@@ -368,6 +308,15 @@ model Visitor {
   voidedBy   String? // actorId
   voidReason String?
 
+  // A visitor is very often here specifically to donate — this app's own
+  // Visitors feature exists mainly for donors/prospective donors signing
+  // in at the gate. When that happens, the Donation(s) they make link
+  // back here via Donation.visitorId, so this one sign-in book entry can
+  // show a person's full giving history from that visit, while the
+  // donation itself still shows up on the regular Donations page too
+  // (it's one row, referenced from both places, not duplicated).
+  donations Donation[]
+
   @@index([timeIn])
   @@index([category])
   @@index([voided])
@@ -388,10 +337,16 @@ enum VisitorCategory {
 // ---------------------------------------------------------------------------
 
 // Manually logged donations — cash, bank transfer, cheque, or in-kind
-// (goods/equipment). This app does not process payments; it is a record
-// book, same as Visitor. If the organisation later wants an online giving
-// form, that's a separate integration (see .env.example) that would create
-// Donation rows via webhook rather than replacing this model.
+// (goods/equipment). A donation comes from a donor (an individual,
+// organization, church, etc.) to the organisation — it has nothing to do
+// with Staff. `recordedBy` is only the actorId of whichever signed-in
+// user typed the entry in (same pattern as Visitor.registeredBy), kept
+// purely for an audit trail of who logged it — not a relation, and not
+// who the money is from. This app does not process payments; it is a
+// record book, same as Visitor. If the organisation later wants an
+// online giving form, that's a separate integration (see .env.example)
+// that would create Donation rows via webhook rather than replacing
+// this model.
 model Donation {
   id                String       @id @default(cuid())
   donorName         String
@@ -404,10 +359,16 @@ model Donation {
   purpose           String? // designation — "Feeding programme", "General fund"
   receiptNumber     String?
   donatedAt         DateTime     @default(now())
-  receivedBy        Staff        @relation(fields: [receivedById], references: [id])
-  receivedById      String
+  recordedBy        String // actorId of whoever logged this entry — not a donor, not staff
   notes             String?
   createdAt         DateTime     @default(now())
+
+  // Optional — set when this donation was made during a logged visit
+  // (see the comment on Visitor.donations). Not every donation has one:
+  // a bank transfer from an organisation that never physically visited
+  // has no Visitor entry to link to, and that's fine.
+  visitor   Visitor? @relation(fields: [visitorId], references: [id])
+  visitorId String?
 
   // Same reasoning as Visitor.voided — a donation is a financial record;
   // correcting a mistake voids and re-enters rather than deleting.
@@ -419,6 +380,7 @@ model Donation {
   @@index([donatedAt])
   @@index([donorType])
   @@index([voided])
+  @@index([visitorId])
 }
 
 enum DonorType {
@@ -492,29 +454,49 @@ enum QueryStatus {
   ESCALATED        // referred further (e.g. to a disciplinary panel)
 }
 
+// A one-off salary deduction not tied to a formal query — "any other
+// reason" HR needs to dock pay for (an advance repayment, damaged
+// equipment, etc.) without going through the discipline/query process.
+// Claimed by payroll generation exactly like StaffQuery.deductionAmount —
+// summed into the target Payslip's otherDeductions/otherDeductionNote and
+// then linked via payslipId so it can never be counted twice.
+model StaffDeduction {
+  id         String   @id @default(cuid())
+  staff      Staff    @relation("DeductionsReceived", fields: [staffId], references: [id])
+  staffId    String
+  issuedBy   Staff    @relation("DeductionsIssued", fields: [issuedById], references: [id])
+  issuedById String
+  reason     String
+  amount     Decimal  @db.Decimal(12, 2)
+  dateIssued DateTime @default(now())
+  payslip    Payslip? @relation(fields: [payslipId], references: [id])
+  payslipId  String?
+  createdAt  DateTime @default(now())
+
+  @@index([staffId])
+}
+
 // ---------------------------------------------------------------------------
 // Payroll
 // ---------------------------------------------------------------------------
 
 // One PayrollPeriod per calendar month. Generating it snapshots every
-// active staff member's current salary into a Payslip and computes
-// deductions from that month's attendance (lateness/absence, at the
-// per-occurrence rates set when generating) plus any resolved
-// StaffQuery.deductionAmount not yet claimed by an earlier payslip. This
-// app does not move money — no bank integration, no payment run — it
-// computes what should be paid and records it for HR/finance to action
-// manually (e.g. via the bank details already on the Staff record).
+// active staff member's current salary into a Payslip and pulls in any
+// resolved StaffQuery.deductionAmount or StaffDeduction not yet claimed
+// by an earlier payslip. Deductions are deliberately never computed
+// automatically from attendance here — lateness/absence are just as
+// informational counts (lateCount/absenceCount on Payslip); if a late or
+// absent day should actually cost someone pay, that's a decision HR makes
+// explicitly on the staff profile (issue a query or an ad-hoc deduction),
+// not a blanket rate applied at payroll time. This app does not move
+// money — no bank integration, no payment run — it computes what should
+// be paid and records it for HR/finance to action manually (e.g. via the
+// bank details already on the Staff record).
 model PayrollPeriod {
   id     String        @id @default(cuid())
   month  Int // 1–12
   year   Int
   status PayrollStatus @default(DRAFT)
-
-  // Deduction rates applied when this period was generated — kept on the
-  // period (not a global setting) so a past period's figures don't shift
-  // if the org changes its policy later.
-  lateDeductionPerOccurrence    Decimal @default(0) @db.Decimal(12, 2)
-  absenceDeductionPerOccurrence Decimal @default(0) @db.Decimal(12, 2)
 
   generatedBy String // actorId
   finalizedAt DateTime?
@@ -541,26 +523,27 @@ model Payslip {
 
   baseSalary Decimal @db.Decimal(12, 2) // snapshot of Staff.currentSalary at generation time
 
-  lateCount           Int     @default(0)
-  absenceCount        Int     @default(0)
-  attendanceDeduction Decimal @default(0) @db.Decimal(12, 2) // lateCount/absenceCount × the period's rates
+  // Informational only — shown on the payslip for context, but do NOT
+  // feed into netPay. See the model comment above for why.
+  lateCount    Int @default(0)
+  absenceCount Int @default(0)
 
-  queryDeductions   Decimal @default(0) @db.Decimal(12, 2) // sum of resolved StaffQuery.deductionAmount claimed this period
-  otherDeductions   Decimal @default(0) @db.Decimal(12, 2) // manual catch-all (loan repayment, etc.)
+  queryDeductions    Decimal @default(0) @db.Decimal(12, 2) // sum of resolved StaffQuery.deductionAmount claimed this period — any category (lateness, misconduct, policy violation, performance, etc.), not just lateness
+  queryDeductionNote String? // joined "category: subject" for each query claimed, so the payslip shows WHY, not just a number
+  otherDeductions    Decimal @default(0) @db.Decimal(12, 2) // ad-hoc StaffDeduction claimed this period (advance repayment, damaged equipment, etc.)
   otherDeductionNote String?
 
   netPay Decimal @db.Decimal(12, 2)
 
-  queries   StaffQuery[]
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  queries     StaffQuery[]
+  deductions  StaffDeduction[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@unique([periodId, staffId])
 }
 
 // ---------------------------------------------------------------------------
-=======
->>>>>>> 288d308ffa2702d476558013447f9d26ce526285
 // Audit
 // ---------------------------------------------------------------------------
 

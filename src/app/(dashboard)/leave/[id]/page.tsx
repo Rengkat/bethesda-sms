@@ -25,7 +25,7 @@ export default async function LeaveDetailPage({
   if (!request) notFound();
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-2xl mx-auto">
       <PageHeader
         title={`${request.leaveType.name} leave — ${request.staff.fullName}`}
         description={`${request.staff.department.name} · ${formatDate(request.startDate)} – ${formatDate(request.endDate)}`}

@@ -59,6 +59,18 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/* Neither Chrome nor Firefox's default stylesheet gives <button> a pointer
+   cursor the way <a> gets one automatically — every clickable button in
+   this app (including third-party/future ones) should still look
+   clickable without relying on every call site remembering cursor-pointer. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+
 /* ---- Accessibility baseline (non-negotiable for this build) ---- */
 
 /* Strong, high-contrast focus ring on every interactive element.

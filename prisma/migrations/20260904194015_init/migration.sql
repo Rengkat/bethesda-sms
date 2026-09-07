@@ -20,7 +20,7 @@ CREATE TYPE "AttendanceType" AS ENUM ('CHECK_IN', 'CHECK_OUT');
 CREATE TYPE "AttendanceStatus" AS ENUM ('ON_TIME', 'LATE', 'EARLY_DEPARTURE', 'MANUAL_OVERRIDE');
 
 -- CreateEnum
-CREATE TYPE "AttendanceSource" AS ENUM ('BIOMETRIC', 'MANUAL', 'WEB_SELF');
+CREATE TYPE "AttendanceSource" AS ENUM ('BIOMETRIC', 'MANUAL');
 
 -- CreateEnum
 CREATE TYPE "LeaveStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
@@ -30,24 +30,6 @@ CREATE TYPE "QualificationLevel" AS ENUM ('SSCE_WAEC', 'OND', 'NCE', 'HND', 'BSC
 
 -- CreateEnum
 CREATE TYPE "DocumentType" AS ENUM ('ID_CARD', 'CONTRACT', 'QUALIFICATION_CERTIFICATE', 'EXAM_RESULT', 'MEDICAL_REPORT', 'OTHER');
-
--- CreateEnum
-CREATE TYPE "VisitorCategory" AS ENUM ('GENERAL', 'PARENT_GUARDIAN', 'VENDOR_SUPPLIER', 'GOVERNMENT_OFFICIAL', 'DONOR_PARTNER', 'VOLUNTEER_PROSPECT', 'OTHER');
-
--- CreateEnum
-CREATE TYPE "DonorType" AS ENUM ('INDIVIDUAL', 'ORGANIZATION', 'CHURCH_FAITH_BASED', 'GOVERNMENT', 'OTHER');
-
--- CreateEnum
-CREATE TYPE "DonationType" AS ENUM ('CASH', 'BANK_TRANSFER', 'CHEQUE', 'IN_KIND');
-
--- CreateEnum
-CREATE TYPE "QueryCategory" AS ENUM ('LATENESS', 'ABSENTEEISM', 'MISCONDUCT', 'POLICY_VIOLATION', 'PERFORMANCE', 'OTHER');
-
--- CreateEnum
-CREATE TYPE "QueryStatus" AS ENUM ('PENDING_RESPONSE', 'RESPONDED', 'RESOLVED', 'ESCALATED');
-
--- CreateEnum
-CREATE TYPE "PayrollStatus" AS ENUM ('DRAFT', 'FINALIZED', 'PAID');
 
 -- CreateTable
 CREATE TABLE "Staff" (
@@ -77,7 +59,6 @@ CREATE TABLE "Staff" (
     "bankAccountNumber" TEXT,
     "bankAccountName" TEXT,
     "passportPhotoUrl" TEXT,
-    "currentSalary" DECIMAL(12,2),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -191,108 +172,6 @@ CREATE TABLE "StaffDocument" (
     "uploadedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "StaffDocument_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "Visitor" (
-    "id" TEXT NOT NULL,
-    "fullName" TEXT NOT NULL,
-    "phone" TEXT,
-    "organization" TEXT,
-    "category" "VisitorCategory" NOT NULL DEFAULT 'GENERAL',
-    "purposeOfVisit" TEXT NOT NULL,
-    "personToSee" TEXT NOT NULL,
-    "badgeNumber" TEXT,
-    "timeIn" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "timeOut" TIMESTAMP(3),
-    "registeredBy" TEXT NOT NULL,
-    "notes" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "voided" BOOLEAN NOT NULL DEFAULT false,
-    "voidedAt" TIMESTAMP(3),
-    "voidedBy" TEXT,
-    "voidReason" TEXT,
-
-    CONSTRAINT "Visitor_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "Donation" (
-    "id" TEXT NOT NULL,
-    "donorName" TEXT NOT NULL,
-    "donorType" "DonorType" NOT NULL DEFAULT 'INDIVIDUAL',
-    "donorContact" TEXT,
-    "donationType" "DonationType" NOT NULL,
-    "amount" DECIMAL(12,2),
-    "currency" TEXT NOT NULL DEFAULT 'NGN',
-    "inKindDescription" TEXT,
-    "purpose" TEXT,
-    "receiptNumber" TEXT,
-    "donatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "receivedById" TEXT NOT NULL,
-    "notes" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "voided" BOOLEAN NOT NULL DEFAULT false,
-    "voidedAt" TIMESTAMP(3),
-    "voidedBy" TEXT,
-    "voidReason" TEXT,
-
-    CONSTRAINT "Donation_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "StaffQuery" (
-    "id" TEXT NOT NULL,
-    "staffId" TEXT NOT NULL,
-    "issuedById" TEXT NOT NULL,
-    "category" "QueryCategory" NOT NULL,
-    "subject" TEXT NOT NULL,
-    "description" TEXT NOT NULL,
-    "dateIssued" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "responseDeadline" TIMESTAMP(3),
-    "staffResponse" TEXT,
-    "respondedAt" TIMESTAMP(3),
-    "status" "QueryStatus" NOT NULL DEFAULT 'PENDING_RESPONSE',
-    "deductionAmount" DECIMAL(12,2),
-    "payslipId" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "StaffQuery_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "PayrollPeriod" (
-    "id" TEXT NOT NULL,
-    "month" INTEGER NOT NULL,
-    "year" INTEGER NOT NULL,
-    "status" "PayrollStatus" NOT NULL DEFAULT 'DRAFT',
-    "lateDeductionPerOccurrence" DECIMAL(12,2) NOT NULL DEFAULT 0,
-    "absenceDeductionPerOccurrence" DECIMAL(12,2) NOT NULL DEFAULT 0,
-    "generatedBy" TEXT NOT NULL,
-    "finalizedAt" TIMESTAMP(3),
-    "paidAt" TIMESTAMP(3),
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "PayrollPeriod_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "Payslip" (
-    "id" TEXT NOT NULL,
-    "periodId" TEXT NOT NULL,
-    "staffId" TEXT NOT NULL,
-    "baseSalary" DECIMAL(12,2) NOT NULL,
-    "lateCount" INTEGER NOT NULL DEFAULT 0,
-    "absenceCount" INTEGER NOT NULL DEFAULT 0,
-    "attendanceDeduction" DECIMAL(12,2) NOT NULL DEFAULT 0,
-    "queryDeductions" DECIMAL(12,2) NOT NULL DEFAULT 0,
-    "otherDeductions" DECIMAL(12,2) NOT NULL DEFAULT 0,
-    "otherDeductionNote" TEXT,
-    "netPay" DECIMAL(12,2) NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "Payslip_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -414,36 +293,6 @@ CREATE INDEX "StaffDocument_staffId_idx" ON "StaffDocument"("staffId");
 CREATE INDEX "StaffDocument_type_idx" ON "StaffDocument"("type");
 
 -- CreateIndex
-CREATE INDEX "Visitor_timeIn_idx" ON "Visitor"("timeIn");
-
--- CreateIndex
-CREATE INDEX "Visitor_category_idx" ON "Visitor"("category");
-
--- CreateIndex
-CREATE INDEX "Visitor_voided_idx" ON "Visitor"("voided");
-
--- CreateIndex
-CREATE INDEX "Donation_donatedAt_idx" ON "Donation"("donatedAt");
-
--- CreateIndex
-CREATE INDEX "Donation_donorType_idx" ON "Donation"("donorType");
-
--- CreateIndex
-CREATE INDEX "Donation_voided_idx" ON "Donation"("voided");
-
--- CreateIndex
-CREATE INDEX "StaffQuery_staffId_idx" ON "StaffQuery"("staffId");
-
--- CreateIndex
-CREATE INDEX "StaffQuery_status_idx" ON "StaffQuery"("status");
-
--- CreateIndex
-CREATE UNIQUE INDEX "PayrollPeriod_month_year_key" ON "PayrollPeriod"("month", "year");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Payslip_periodId_staffId_key" ON "Payslip"("periodId", "staffId");
-
--- CreateIndex
 CREATE INDEX "AuditLog_targetType_targetId_idx" ON "AuditLog"("targetType", "targetId");
 
 -- CreateIndex
@@ -490,24 +339,6 @@ ALTER TABLE "Qualification" ADD CONSTRAINT "Qualification_certificateDocId_fkey"
 
 -- AddForeignKey
 ALTER TABLE "StaffDocument" ADD CONSTRAINT "StaffDocument_staffId_fkey" FOREIGN KEY ("staffId") REFERENCES "Staff"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Donation" ADD CONSTRAINT "Donation_receivedById_fkey" FOREIGN KEY ("receivedById") REFERENCES "Staff"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "StaffQuery" ADD CONSTRAINT "StaffQuery_staffId_fkey" FOREIGN KEY ("staffId") REFERENCES "Staff"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "StaffQuery" ADD CONSTRAINT "StaffQuery_issuedById_fkey" FOREIGN KEY ("issuedById") REFERENCES "Staff"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "StaffQuery" ADD CONSTRAINT "StaffQuery_payslipId_fkey" FOREIGN KEY ("payslipId") REFERENCES "Payslip"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Payslip" ADD CONSTRAINT "Payslip_periodId_fkey" FOREIGN KEY ("periodId") REFERENCES "PayrollPeriod"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Payslip" ADD CONSTRAINT "Payslip_staffId_fkey" FOREIGN KEY ("staffId") REFERENCES "Staff"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_staffId_fkey" FOREIGN KEY ("staffId") REFERENCES "Staff"("id") ON DELETE SET NULL ON UPDATE CASCADE;

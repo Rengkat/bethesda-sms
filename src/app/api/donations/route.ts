@@ -17,7 +17,6 @@ const createDonationSchema = z
     purpose: z.string().optional().or(z.literal("")),
     receiptNumber: z.string().optional().or(z.literal("")),
     donatedAt: z.string().min(1),
-    receivedById: z.string().min(1),
     notes: z.string().optional().or(z.literal("")),
   })
   .refine((data) => data.donationType === "IN_KIND" || Boolean(data.amount), {
@@ -38,7 +37,6 @@ export async function GET() {
   }
 
   const donations = await prisma.donation.findMany({
-    include: { receivedBy: true },
     orderBy: { donatedAt: "desc" },
     take: 100,
   });
@@ -75,7 +73,7 @@ export async function POST(req: NextRequest) {
       purpose: data.purpose || undefined,
       receiptNumber: data.receiptNumber || undefined,
       donatedAt: new Date(data.donatedAt),
-      receivedById: data.receivedById,
+      recordedBy: session.user.id,
       notes: data.notes || undefined,
     },
   });

@@ -17,7 +17,6 @@ const updateDonationSchema = z
     purpose: z.string().optional().or(z.literal("")),
     receiptNumber: z.string().optional().or(z.literal("")),
     donatedAt: z.string().min(1),
-    receivedById: z.string().min(1),
     notes: z.string().optional().or(z.literal("")),
   })
   .refine((data) => data.donationType === "IN_KIND" || Boolean(data.amount), {
@@ -62,7 +61,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       purpose: data.purpose || null,
       receiptNumber: data.receiptNumber || null,
       donatedAt: new Date(data.donatedAt),
-      receivedById: data.receivedById,
       notes: data.notes || null,
     },
   });

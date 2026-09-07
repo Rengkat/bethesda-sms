@@ -5,14 +5,19 @@ import { cn } from "@/lib/utils";
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
 
+// Solid, slightly raised buttons — a flat/borderless look reads as inert on
+// a form-heavy internal tool, especially to less tech-fluent front-desk
+// staff. A shadow + hover/active lift makes "this is clickable" obvious
+// without needing to hover first to find out.
 const variantClasses: Record<Variant, string> = {
   primary:
-    "bg-brand-blue text-white hover:bg-brand-blue-dark disabled:bg-brand-blue/50",
+    "bg-brand-blue text-white shadow-sm shadow-brand-blue/30 hover:bg-brand-blue-dark hover:shadow-md active:shadow-sm active:translate-y-px disabled:bg-brand-blue/50 disabled:shadow-none",
   secondary:
-    "bg-white text-foreground border border-border hover:bg-brand-blue-light disabled:opacity-50",
+    "bg-white text-foreground border border-border shadow-sm hover:bg-brand-blue-light hover:border-brand-blue/30 hover:shadow-md active:shadow-sm active:translate-y-px disabled:opacity-50 disabled:shadow-none",
   ghost:
     "bg-transparent text-foreground hover:bg-brand-blue-light disabled:opacity-50",
-  danger: "bg-danger text-white hover:bg-danger/90 disabled:bg-danger/50",
+  danger:
+    "bg-danger text-white shadow-sm shadow-danger/30 hover:bg-danger/90 hover:shadow-md active:shadow-sm active:translate-y-px disabled:bg-danger/50 disabled:shadow-none",
 };
 
 const sizeClasses: Record<Size, string> = {
@@ -37,7 +42,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <Comp
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center rounded-full font-medium transition-colors",
+          "inline-flex items-center justify-center rounded-full font-medium transition-all cursor-pointer",
           "disabled:cursor-not-allowed",
           variantClasses[variant],
           sizeClasses[size],

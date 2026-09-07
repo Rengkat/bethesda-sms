@@ -9,10 +9,21 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { formatNaira } from "@/lib/utils";
+import { serializeDonationForClient } from "@/lib/serialize";
+import { CsvImportButton } from "@/components/shared/csv-import-button";
+import { DateRangeExportButton } from "@/components/shared/date-range-export-button";
+import { DateRangeFilterForm } from "@/components/shared/date-range-filter-form";
+import { PaginationControls } from "@/components/shared/pagination-controls";
 
 export const metadata = { title: "Donations" };
 
-export default async function DonationsPage() {
+const PAGE_SIZE = 20;
+
+export default async function DonationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string; page?: string }>;
+}) {
   const session = await auth.api.getSession({ headers: await headers() });
   const role = (session?.user as { role?: string } | undefined)?.role;
 
@@ -30,13 +41,34 @@ export default async function DonationsPage() {
     );
   }
 
+  const { from, to, page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfYear = new Date(now.getFullYear(), 0, 1);
 
-  const [donations, staff, monthTotal, yearTotal] = await Promise.all([
-    prisma.donation.findMany({ include: { receivedBy: true }, orderBy: { donatedAt: "desc" }, take: 100 }).catch(() => []),
-    prisma.staff.findMany({ where: { active: true }, orderBy: { fullName: "asc" } }).catch(() => []),
+  let donatedAtFilter: { gte?: Date; lte?: Date } | undefined;
+  if (from || to) {
+    donatedAtFilter = {};
+    if (from) donatedAtFilter.gte = new Date(from);
+    if (to) {
+      const toDate = new Date(to);
+      toDate.setHours(23, 59, 59, 999);
+      donatedAtFilter.lte = toDate;
+    }
+  }
+
+  const [donations, totalCount, monthTotal, yearTotal] = await Promise.all([
+    prisma.donation
+      .findMany({
+        where: donatedAtFilter ? { donatedAt: donatedAtFilter } : undefined,
+        include: { visitor: { select: { id: true, fullName: true } } },
+        orderBy: { donatedAt: "desc" },
+        skip: (page - 1) * PAGE_SIZE,
+        take: PAGE_SIZE,
+      })
+      .catch(() => []),
+    prisma.donation.count({ where: donatedAtFilter ? { donatedAt: donatedAtFilter } : undefined }).catch(() => 0),
     prisma.donation
       .aggregate({
         _sum: { amount: true },
@@ -50,13 +82,20 @@ export default async function DonationsPage() {
       })
       .catch(() => ({ _sum: { amount: null } })),
   ]);
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Donations"
-        description="Donor records and giving history."
-        actions={<DonationRegisterButton staff={staff} />}
+        description="Donor records and giving history — from donors to the organisation, unrelated to staff."
+        actions={
+          <>
+            <CsvImportButton importUrl="/api/donations/import" templateUrl="/api/donations/template" label="Import CSV" />
+            <DateRangeExportButton exportUrl="/api/donations/export" label="Export" />
+            <DonationRegisterButton />
+          </>
+        }
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -79,15 +118,31 @@ export default async function DonationsPage() {
       </div>
 
       <Card className="overflow-hidden">
+        <div className="px-5 py-4 border-b border-border">
+          <DateRangeFilterForm from={from} to={to} />
+        </div>
         {donations.length === 0 ? (
           <EmptyState
             icon={HandCoins}
-            title="No donations recorded yet"
-            description="Record a donation as it comes in — cash, transfer, cheque, or goods."
-            action={<DonationRegisterButton staff={staff} />}
+            title={from || to ? "No donations in that range" : "No donations recorded yet"}
+            description={
+              from || to
+                ? "Try a wider date range, or clear the filter."
+                : "Record a donation as it comes in — cash, transfer, cheque, or goods."
+            }
+            action={<DonationRegisterButton />}
           />
         ) : (
-          <DonationTable donations={donations} staff={staff} />
+          <>
+            <DonationTable donations={donations.map(serializeDonationForClient)} />
+            <PaginationControls
+              currentPage={page}
+              totalPages={totalPages}
+              totalCount={totalCount}
+              pageSize={PAGE_SIZE}
+              searchParams={{ from, to }}
+            />
+          </>
         )}
       </Card>
     </div>

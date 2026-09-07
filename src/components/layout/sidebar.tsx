@@ -6,7 +6,7 @@ import { LogOut } from "lucide-react";
 import { NAV_ITEMS } from "./nav-items";
 import { BrandLogo } from "./brand-logo";
 import { cn } from "@/lib/utils";
-import { authClient } from "@/lib/auth-client";
+import { useSignOut } from "@/hooks/use-sign-out";
 
 /**
  * Persistent desktop sidebar. Hidden below `lg`; MobileNav takes over there.
@@ -15,6 +15,7 @@ import { authClient } from "@/lib/auth-client";
  */
 export function Sidebar({ role }: { role?: string }) {
   const pathname = usePathname();
+  const signOut = useSignOut();
   const items = NAV_ITEMS.filter((item) => !item.roles || (role && item.roles.includes(role as (typeof item.roles)[number])));
 
   return (
@@ -52,7 +53,7 @@ export function Sidebar({ role }: { role?: string }) {
       <div className="border-t border-white/10 p-3">
         <button
           type="button"
-          onClick={() => authClient.signOut()}
+          onClick={signOut}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition-colors"
         >
           <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />

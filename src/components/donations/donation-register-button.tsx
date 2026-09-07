@@ -3,7 +3,6 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { HandCoins } from "lucide-react";
-import type { Staff } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 
@@ -22,7 +21,7 @@ const DONATION_TYPES = [
   ["IN_KIND", "In-kind (goods/equipment)"],
 ] as const;
 
-export function DonationRegisterButton({ staff }: { staff: Staff[] }) {
+export function DonationRegisterButton() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [donationType, setDonationType] = useState<string>("CASH");
@@ -63,7 +62,7 @@ export function DonationRegisterButton({ staff }: { staff: Staff[] }) {
         Record donation
       </Button>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Record a donation">
+      <Modal open={open} onClose={() => setOpen(false)} title="Record a donation" size="lg">
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {error && (
             <div role="alert" className="rounded-lg bg-danger-bg text-danger text-sm px-4 py-3">
@@ -75,7 +74,7 @@ export function DonationRegisterButton({ staff }: { staff: Staff[] }) {
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="d-donorType" className="block text-sm font-medium text-foreground mb-1.5">
+              <label htmlFor="d-donorType" className="block text-left text-sm font-medium text-foreground mb-1.5">
                 Donor type
               </label>
               <select
@@ -94,7 +93,7 @@ export function DonationRegisterButton({ staff }: { staff: Staff[] }) {
           </div>
 
           <div>
-            <label htmlFor="d-donationType" className="block text-sm font-medium text-foreground mb-1.5">
+            <label htmlFor="d-donationType" className="block text-left text-sm font-medium text-foreground mb-1.5">
               Donation type
             </label>
             <select
@@ -113,7 +112,7 @@ export function DonationRegisterButton({ staff }: { staff: Staff[] }) {
 
           {donationType === "IN_KIND" ? (
             <div>
-              <label htmlFor="d-inKind" className="block text-sm font-medium text-foreground mb-1.5">
+              <label htmlFor="d-inKind" className="block text-left text-sm font-medium text-foreground mb-1.5">
                 Description of goods/equipment
               </label>
               <textarea
@@ -134,28 +133,10 @@ export function DonationRegisterButton({ staff }: { staff: Staff[] }) {
             <Field id="d-receiptNumber" name="receiptNumber" label="Receipt number" />
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Field id="d-donatedAt" name="donatedAt" label="Date received" type="date" required />
-            <div>
-              <label htmlFor="d-receivedById" className="block text-sm font-medium text-foreground mb-1.5">
-                Received by
-              </label>
-              <select
-                id="d-receivedById"
-                name="receivedById"
-                required
-                className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm bg-white focus-visible:outline-none"
-              >
-                <option value="">Select staff member</option>
-                {staff.map((s) => (
-                  <option key={s.id} value={s.id}>{s.fullName}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <Field id="d-donatedAt" name="donatedAt" label="Date received" type="date" required />
 
           <div>
-            <label htmlFor="d-notes" className="block text-sm font-medium text-foreground mb-1.5">
+            <label htmlFor="d-notes" className="block text-left text-sm font-medium text-foreground mb-1.5">
               Notes
             </label>
             <textarea
@@ -197,7 +178,7 @@ function Field({
 }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-foreground mb-1.5">
+      <label htmlFor={id} className="block text-left text-sm font-medium text-foreground mb-1.5">
         {label} {required && <span aria-hidden="true">*</span>}
       </label>
       <input

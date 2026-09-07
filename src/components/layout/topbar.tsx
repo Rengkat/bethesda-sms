@@ -36,10 +36,18 @@ export function Topbar({
           </span>
           <span className="hidden sm:block text-sm">
             <span className="block font-medium text-foreground">{userName}</span>
-            <span className="block text-xs text-muted">{userRole}</span>
+            <span className="block text-xs text-muted">{userRole && formatRole(userRole)}</span>
           </span>
         </div>
       )}
     </header>
   );
+}
+
+function formatRole(role: string) {
+  return role
+    .toLowerCase()
+    .split("_")
+    .map((w) => w[0].toUpperCase() + w.slice(1))
+    .join(" ");
 }

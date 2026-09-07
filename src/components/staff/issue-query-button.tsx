@@ -54,7 +54,7 @@ export function IssueQueryButton({ staffId }: { staffId: string }) {
         Issue query
       </Button>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Issue a query">
+      <Modal open={open} onClose={() => setOpen(false)} title="Issue a query" size="lg">
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {error && (
             <div role="alert" className="rounded-lg bg-danger-bg text-danger text-sm px-4 py-3">

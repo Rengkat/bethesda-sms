@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Visitor } from "@/generated/prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { formatTime, formatDate } from "@/lib/utils";
@@ -27,7 +28,10 @@ export function VisitorTable({ visitors, canVoid }: { visitors: Visitor[]; canVo
             <tr key={v.id} className={v.voided ? "opacity-50" : "hover:bg-brand-blue-light/40"}>
               <td className="px-5 py-3">
                 <p className="font-medium text-foreground">
-                  {v.fullName} {v.voided && <Badge tone="danger" className="ml-1">Voided</Badge>}
+                  <Link href={`/visitors/${v.id}`} className="hover:text-brand-blue-dark hover:underline">
+                    {v.fullName}
+                  </Link>{" "}
+                  {v.voided && <Badge tone="danger" className="ml-1">Voided</Badge>}
                 </p>
                 <p className="text-muted text-xs">{v.organization ?? v.phone ?? "—"}</p>
                 {v.voided && v.voidReason && (

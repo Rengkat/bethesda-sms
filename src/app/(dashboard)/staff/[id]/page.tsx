@@ -1,15 +1,19 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { headers } from "next/headers";
 import Image from "next/image";
+import { Pencil, Mail, Phone, Building2, GraduationCap, FileText, Gavel as GavelIcon, Wallet } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { PageHeader } from "@/components/shared/page-header";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, formatNaira } from "@/lib/utils";
+import { formatDate, formatNaira, initials } from "@/lib/utils";
 import { IssueQueryButton } from "@/components/staff/issue-query-button";
 import { QueryResolveButton } from "@/components/staff/query-resolve-button";
+import { AddDeductionButton } from "@/components/staff/add-deduction-button";
+import { ExportAttendanceButton } from "@/components/staff/export-attendance-button";
 
 export const metadata = { title: "Staff profile" };
 
@@ -27,6 +31,7 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
           leaveRequests: { orderBy: { createdAt: "desc" }, take: 5 },
           attendances: { orderBy: { timestamp: "desc" }, take: 10, include: { device: true } },
           queriesReceived: { include: { issuedBy: true }, orderBy: { dateIssued: "desc" } },
+          deductionsReceived: { include: { issuedBy: true }, orderBy: { dateIssued: "desc" } },
         },
       })
       .catch(() => null),
@@ -36,8 +41,13 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
   if (!staff) notFound();
 
   const role = (session?.user as { role?: string } | undefined)?.role;
+  const canEditStaff = Boolean(role && can(role as never, "staff:edit"));
   const canViewSalary = Boolean(role && can(role as never, "staff:view-salary"));
   const canResolveQuery = Boolean(role && can(role as never, "staff:resolve-query"));
+  const canIssueDeduction = Boolean(role && can(role as never, "staff:issue-deduction"));
+  const canExportOthers = Boolean(role && can(role as never, "reports:export"));
+  const ownStaffId = (session?.user as { staffId?: string | null } | undefined)?.staffId;
+  const canExportAttendance = canExportOthers || ownStaffId === staff.id;
 
   let canIssueQuery = Boolean(role && can(role as never, "staff:issue-query"));
   if (!canIssueQuery && role === "SUPERVISOR") {
@@ -48,77 +58,84 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
     }
   }
 
+  const pendingDeductionTotal =
+    staff.queriesReceived
+      .filter((q) => q.deductionAmount && !q.payslipId)
+      .reduce((sum, q) => sum + Number(q.deductionAmount ?? 0), 0) +
+    staff.deductionsReceived
+      .filter((d) => !d.payslipId)
+      .reduce((sum, d) => sum + Number(d.amount), 0);
+
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={staff.fullName}
-        description={`${staff.staffCode} · ${staff.department.name}`}
-        actions={
-          <div className="flex items-center gap-2">
-            <Badge tone={staff.category === "TEACHING" ? "brand" : "neutral"}>
-              {formatLabel(staff.category)}
-            </Badge>
-            <Badge tone={staff.active ? "success" : "neutral"}>
-              {staff.active ? "Active" : "Inactive"}
-            </Badge>
-          </div>
-        }
-      />
-
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Left column: identity & personal detail */}
-        <div className="lg:col-span-1 space-y-6">
-          <Card>
-            {staff.passportPhotoUrl && (
-              <div className="px-6 pt-6">
+      {/* Hero header */}
+      <Card className="overflow-hidden">
+        <div className="bg-gradient-to-r from-brand-blue to-brand-blue-dark px-6 py-8 sm:px-8">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+            <div className="shrink-0">
+              {staff.passportPhotoUrl ? (
                 <Image
                   src={staff.passportPhotoUrl}
                   alt={`${staff.fullName} passport photo`}
-                  width={96}
-                  height={96}
-                  className="rounded-md object-cover border border-border"
+                  width={80}
+                  height={80}
+                  className="rounded-2xl object-cover border-4 border-white/30 shadow-lg"
                 />
-              </div>
-            )}
-            <CardHeader>
-              <CardTitle>Employment</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <Row label="Role" value={formatLabel(staff.role)} />
-              <Row label="Category" value={formatLabel(staff.category)} />
-              <Row label="Employment type" value={formatLabel(staff.employmentType)} />
-              <Row label="Department" value={staff.department.name} />
-              <Row label="Date hired" value={formatDate(staff.dateHired)} />
-              {staff.dateExited && <Row label="Date exited" value={formatDate(staff.dateExited)} />}
-              <Row label="Email" value={staff.email ?? "—"} />
-              <Row label="Phone" value={staff.phone ?? "—"} />
-              {canViewSalary && (
-                <Row
-                  label="Monthly salary"
-                  value={staff.currentSalary ? formatNaira(staff.currentSalary) : "—"}
-                />
+              ) : (
+                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/15 border-4 border-white/30 text-white text-2xl font-bold shadow-lg">
+                  {initials(staff.fullName)}
+                </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl font-bold text-white truncate">{staff.fullName}</h1>
+              <p className="text-white/80 mt-0.5">
+                {staff.staffCode} · {staff.department.name}
+              </p>
+              <div className="flex flex-wrap items-center gap-2 mt-3">
+                <Badge tone={staff.category === "TEACHING" ? "brand" : "neutral"}>
+                  {formatLabel(staff.category)}
+                </Badge>
+                <Badge tone={staff.active ? "success" : "neutral"}>{staff.active ? "Active" : "Inactive"}</Badge>
+                <Badge tone="neutral">{formatLabel(staff.role)}</Badge>
+                {pendingDeductionTotal > 0 && (
+                  <Badge tone="warning">{formatNaira(pendingDeductionTotal)} pending deduction</Badge>
+                )}
+              </div>
+            </div>
+            {canEditStaff && (
+              <Button asChild variant="secondary" className="shrink-0 bg-white/95 hover:bg-white">
+                <Link href={`/staff/${staff.id}/edit`}>
+                  <Pencil className="h-4 w-4" aria-hidden="true" />
+                  Edit staff
+                </Link>
+              </Button>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-x-8 gap-y-2 px-6 py-4 sm:px-8 text-sm text-muted">
+          <span className="flex items-center gap-1.5"><Mail className="h-4 w-4" aria-hidden="true" />{staff.email ?? "No email on file"}</span>
+          <span className="flex items-center gap-1.5"><Phone className="h-4 w-4" aria-hidden="true" />{staff.phone ?? "No phone on file"}</span>
+          <span className="flex items-center gap-1.5"><Building2 className="h-4 w-4" aria-hidden="true" />Hired {formatDate(staff.dateHired)}</span>
+        </div>
+      </Card>
 
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Left column: personal detail */}
+        <div className="lg:col-span-1 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Personal details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <Row
-                label="Date of birth"
-                value={staff.dateOfBirth ? formatDate(staff.dateOfBirth) : "—"}
-              />
+              <Row label="Date of birth" value={staff.dateOfBirth ? formatDate(staff.dateOfBirth) : "—"} />
               <Row label="Gender" value={staff.gender ? formatLabel(staff.gender) : "—"} />
-              <Row
-                label="Marital status"
-                value={staff.maritalStatus ? formatLabel(staff.maritalStatus) : "—"}
-              />
+              <Row label="Marital status" value={staff.maritalStatus ? formatLabel(staff.maritalStatus) : "—"} />
               <Row label="Nationality" value={staff.nationality ?? "—"} />
               <Row label="State of origin" value={staff.stateOfOrigin ?? "—"} />
               <Row label="Home address" value={staff.homeAddress ?? "—"} />
               <Row label="Visually impaired" value={staff.isVisuallyImpaired ? "Yes" : "No"} />
+              {staff.dateExited && <Row label="Date exited" value={formatDate(staff.dateExited)} />}
             </CardContent>
           </Card>
 
@@ -134,24 +151,26 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Bank details</CardTitle>
+            <CardHeader className="flex items-center gap-2">
+              <Wallet className="h-4 w-4 text-muted" aria-hidden="true" />
+              <CardTitle>Bank &amp; salary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <Row label="Bank" value={staff.bankName ?? "—"} />
               <Row label="Account name" value={staff.bankAccountName ?? "—"} />
-              <Row
-                label="Account number"
-                value={staff.bankAccountNumber ? maskAccountNumber(staff.bankAccountNumber) : "—"}
-              />
+              <Row label="Account number" value={staff.bankAccountNumber ? maskAccountNumber(staff.bankAccountNumber) : "—"} />
+              {canViewSalary && (
+                <Row label="Monthly salary" value={staff.currentSalary ? formatNaira(staff.currentSalary) : "—"} />
+              )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Right column: qualifications, documents, discipline, attendance, leave */}
+        {/* Right column: qualifications, documents, discipline, deductions, attendance, leave */}
         <div className="lg:col-span-2 space-y-6">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex items-center gap-2">
+              <GraduationCap className="h-4 w-4 text-muted" aria-hidden="true" />
               <CardTitle>Qualifications</CardTitle>
             </CardHeader>
             <CardContent>
@@ -173,12 +192,7 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
                         </p>
                       </div>
                       {q.certificateDoc && (
-                        <a
-                          href={q.certificateDoc.fileUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sm text-brand underline underline-offset-2 shrink-0"
-                        >
+                        <a href={q.certificateDoc.fileUrl} target="_blank" rel="noreferrer" className="text-sm text-brand underline underline-offset-2 shrink-0">
                           View certificate
                         </a>
                       )}
@@ -190,8 +204,16 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Documents</CardTitle>
+            <CardHeader className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted" aria-hidden="true" />
+                <CardTitle>Documents</CardTitle>
+              </span>
+              {canEditStaff && (
+                <Link href={`/staff/${staff.id}/edit`} className="text-sm text-brand underline underline-offset-2">
+                  Upload
+                </Link>
+              )}
             </CardHeader>
             <CardContent>
               {staff.documents.length === 0 ? (
@@ -211,12 +233,7 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           {expired && <Badge tone="warning">Expired</Badge>}
-                          <a
-                            href={d.fileUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-sm text-brand underline underline-offset-2"
-                          >
+                          <a href={d.fileUrl} target="_blank" rel="noreferrer" className="text-sm text-brand underline underline-offset-2">
                             View
                           </a>
                         </div>
@@ -229,34 +246,33 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
           </Card>
 
           <Card>
-            <CardHeader className="flex-row items-center justify-between">
-              <CardTitle>Discipline &amp; queries</CardTitle>
-              {canIssueQuery && <IssueQueryButton staffId={staff.id} />}
+            <CardHeader className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <GavelIcon className="h-4 w-4 text-muted" aria-hidden="true" />
+                <CardTitle>Discipline, queries &amp; deductions</CardTitle>
+              </span>
+              <div className="flex items-center gap-2">
+                {canIssueDeduction && <AddDeductionButton staffId={staff.id} />}
+                {canIssueQuery && <IssueQueryButton staffId={staff.id} />}
+              </div>
             </CardHeader>
-            <CardContent>
-              {staff.queriesReceived.length === 0 ? (
-                <p className="text-sm text-muted">No queries on record.</p>
+            <CardContent className="space-y-4">
+              {staff.queriesReceived.length === 0 && staff.deductionsReceived.length === 0 ? (
+                <p className="text-sm text-muted">Nothing on record.</p>
               ) : (
-                <ul className="divide-y divide-border">
+                <>
                   {staff.queriesReceived.map((q) => (
-                    <li key={q.id} className="py-3 space-y-2 text-sm">
+                    <div key={q.id} className="rounded-xl border border-border p-3 space-y-2 text-sm">
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <p className="font-medium text-foreground">{q.subject}</p>
                           <p className="text-muted text-xs">
-                            {formatLabel(q.category)} · Issued by {q.issuedBy.fullName} ·{" "}
-                            {formatDate(q.dateIssued)}
+                            {formatLabel(q.category)} · Issued by {q.issuedBy.fullName} · {formatDate(q.dateIssued)}
                           </p>
                         </div>
                         <Badge
                           tone={
-                            q.status === "RESOLVED"
-                              ? "success"
-                              : q.status === "ESCALATED"
-                              ? "danger"
-                              : q.status === "RESPONDED"
-                              ? "brand"
-                              : "warning"
+                            q.status === "RESOLVED" ? "success" : q.status === "ESCALATED" ? "danger" : q.status === "RESPONDED" ? "brand" : "warning"
                           }
                         >
                           {formatLabel(q.status)}
@@ -275,12 +291,27 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
                           {q.payslipId ? " · already applied to a payslip" : " · pending next payroll run"}
                         </p>
                       )}
-                      {canResolveQuery && q.status !== "RESOLVED" && (
-                        <QueryResolveButton queryId={q.id} />
-                      )}
-                    </li>
+                      {canResolveQuery && q.status !== "RESOLVED" && <QueryResolveButton queryId={q.id} />}
+                    </div>
                   ))}
-                </ul>
+
+                  {staff.deductionsReceived.map((d) => (
+                    <div key={d.id} className="rounded-xl border border-border p-3 flex items-start justify-between gap-4 text-sm">
+                      <div>
+                        <p className="font-medium text-foreground">{d.reason}</p>
+                        <p className="text-muted text-xs">
+                          Added by {d.issuedBy.fullName} · {formatDate(d.dateIssued)}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-danger font-medium">{formatNaira(d.amount)}</p>
+                        <Badge tone={d.payslipId ? "success" : "warning"}>
+                          {d.payslipId ? "Applied" : "Pending payroll"}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </>
               )}
             </CardContent>
           </Card>
@@ -299,11 +330,7 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
                       <span>
                         {formatDate(l.startDate)} – {formatDate(l.endDate)}
                       </span>
-                      <Badge
-                        tone={
-                          l.status === "APPROVED" ? "success" : l.status === "REJECTED" ? "warning" : "neutral"
-                        }
-                      >
+                      <Badge tone={l.status === "APPROVED" ? "success" : l.status === "REJECTED" ? "warning" : "neutral"}>
                         {formatLabel(l.status)}
                       </Badge>
                     </li>
@@ -314,8 +341,9 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex items-center justify-between">
               <CardTitle>Recent attendance</CardTitle>
+              {canExportAttendance && <ExportAttendanceButton staffId={staff.id} />}
             </CardHeader>
             <CardContent>
               {staff.attendances.length === 0 ? (
@@ -328,13 +356,7 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
                         {a.type === "CHECK_IN" ? "Checked in" : "Checked out"} at {a.device.name}
                       </span>
                       <Badge
-                        tone={
-                          a.status === "ON_TIME"
-                            ? "success"
-                            : a.status === "LATE" || a.status === "EARLY_DEPARTURE"
-                            ? "warning"
-                            : "brand"
-                        }
+                        tone={a.status === "ON_TIME" ? "success" : a.status === "LATE" || a.status === "EARLY_DEPARTURE" ? "warning" : "brand"}
                       >
                         {formatLabel(a.status)}
                       </Badge>

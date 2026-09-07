@@ -18,7 +18,7 @@ export default async function NewStaffPage() {
   const canEditSalary = Boolean(role && can(role as never, "staff:edit-salary"));
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-3xl mx-auto">
       <PageHeader title="Add staff" description="Create a new staff profile." />
       <Card>
         <CardContent>

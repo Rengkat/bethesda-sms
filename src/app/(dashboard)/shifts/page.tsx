@@ -18,7 +18,7 @@ export default async function ShiftsPage() {
         orderBy: { name: "asc" },
       })
       .catch(() => []),
-    prisma.staff.findMany({ where: { active: true }, orderBy: { fullName: "asc" } }).catch(() => []),
+    prisma.staff.findMany({ where: { active: true }, select: { id: true, fullName: true, staffCode: true }, orderBy: { fullName: "asc" } }).catch(() => []),
   ]);
 
   return (

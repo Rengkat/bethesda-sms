@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatNaira } from "@/lib/utils";
 import { QueryResponseForm } from "@/components/queries/query-response-form";
+import { ProfileNameForm } from "@/components/shared/profile-name-form";
 
 export const metadata = { title: "My profile" };
 
@@ -23,11 +24,15 @@ export default async function ProfilePage() {
     : [[], []];
 
   return (
-    <div className="space-y-6 max-w-lg">
+    <div className="space-y-6 max-w-lg mx-auto">
       <PageHeader title="My profile" description="Your account details." />
       <Card>
         <CardContent className="space-y-3 text-sm">
-          <Row label="Name" value={session?.user.name ?? "—"} />
+          {session?.user.name ? (
+            <ProfileNameForm currentName={session.user.name} />
+          ) : (
+            <Row label="Name" value="—" />
+          )}
           <Row label="Email" value={session?.user.email ?? "—"} />
           <Row label="Role" value={(session?.user as { role?: string })?.role ?? "—"} />
         </CardContent>

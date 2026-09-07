@@ -38,6 +38,21 @@ async function main() {
     process.exit(1);
   }
 
+  // The third argument is the PERSON's name, shown next to their role
+  // everywhere in the UI (topbar, audit logs, "issued by" on queries).
+  // Typing the role itself here ("Super Admin", "Admin", "HR Admin") is a
+  // common mistake that makes the topbar read e.g. "Super Admin / Super
+  // Admin" — caught here so it's fixed before the account exists, not
+  // after. (It can also be changed anytime from the app at /profile.)
+  const ROLE_LIKE_NAMES = ["super admin", "admin", "hr admin", "supervisor", "teacher", "house parent", "support staff"];
+  if (name && ROLE_LIKE_NAMES.includes(name.trim().toLowerCase())) {
+    console.error(
+      `"${name}" looks like a role, not a person's name. Pass the actual admin's name instead, e.g.:\n` +
+        `  npx tsx scripts/create-admin.ts ${email} "${password}" "Adaeze Okafor"`,
+    );
+    process.exit(1);
+  }
+
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     await prisma.user.update({ where: { id: existing.id }, data: { role: "SUPER_ADMIN" } });

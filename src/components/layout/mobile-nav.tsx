@@ -9,13 +9,14 @@ import { BrandLogo } from "./brand-logo";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/store/ui-store";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
-import { authClient } from "@/lib/auth-client";
+import { useSignOut } from "@/hooks/use-sign-out";
 
 export function MobileNav({ role }: { role?: string }) {
   const pathname = usePathname();
   const isOpen = useUIStore((s) => s.isMobileNavOpen);
   const close = useUIStore((s) => s.closeMobileNav);
   const panelRef = useRef<HTMLDivElement>(null);
+  const signOut = useSignOut();
 
   useFocusTrap(panelRef, isOpen, close);
 
@@ -81,7 +82,7 @@ export function MobileNav({ role }: { role?: string }) {
         <div className="border-t border-white/10 p-3">
           <button
             type="button"
-            onClick={() => authClient.signOut()}
+            onClick={signOut}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-white/75 hover:bg-white/10 hover:text-white transition-colors"
           >
             <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />

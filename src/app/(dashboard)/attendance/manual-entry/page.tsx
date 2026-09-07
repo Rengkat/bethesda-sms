@@ -7,12 +7,12 @@ export const metadata = { title: "Manual attendance entry" };
 
 export default async function ManualEntryPage() {
   const [staff, devices] = await Promise.all([
-    prisma.staff.findMany({ where: { active: true }, orderBy: { fullName: "asc" } }).catch(() => []),
+    prisma.staff.findMany({ where: { active: true }, select: { id: true, fullName: true, staffCode: true }, orderBy: { fullName: "asc" } }).catch(() => []),
     prisma.device.findMany({ orderBy: { name: "asc" } }).catch(() => []),
   ]);
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-2xl mx-auto">
       <PageHeader
         title="Manual attendance entry"
         description="Admin override for a missed or incorrect biometric log. Every entry requires a reason and is recorded in the audit log."

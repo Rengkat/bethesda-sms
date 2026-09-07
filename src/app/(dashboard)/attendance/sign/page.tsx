@@ -42,7 +42,7 @@ export default async function SelfAttendancePage() {
   const checkOut = today.find((a) => a.type === "CHECK_OUT");
 
   return (
-    <div className="space-y-6 max-w-xl">
+    <div className="space-y-6 max-w-xl mx-auto">
       <PageHeader title="Sign in / out" description={`Today — ${formatDate(new Date())}`} />
 
       <Card>
