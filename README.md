@@ -649,6 +649,77 @@ Tailwind/build step, opens directly in a browser) was also generated for
 one real staff record to sanity-check the design before it went into the
 app — not part of the app itself, just how this was previewed.
 
+## This pass: fixed a real duplicate-attendance bug, plus the missing Device ID display
+
+**Found while explaining hardware setup, not something previously
+flagged**: `node-zklib`'s `getAttendances()` returns the device's entire
+stored log on every poll — it doesn't clear the device's log or fetch
+only new entries. Since the sync route had no deduplication, turning the
+hardware on would have re-inserted every historical scan on every 5-minute
+poll, forever, growing without bound and making every attendance report
+wrong. Fixed with `@@unique([staffId, deviceId, timestamp, type])` on
+`Attendance` — the same physical scan re-sent by the device now silently
+no-ops (counted as `skipped`, not an error) instead of creating a
+duplicate row.
+
+**Also found**: `DeviceCreateButton`'s own form literally said "copy this
+device's ID into the Raspberry Pi bridge's `.env`" — but nowhere in the
+UI was that ID ever actually shown. Added it to the Devices list
+(`Settings → Devices`) with a copy button, and updated
+`sync-bridge/.env.example`'s placeholder to point there instead of "the
+app database."
+
+This is a schema change (`Attendance` unique constraint) — run:
+```bash
+npx prisma generate
+npx prisma migrate dev --name attendance_dedup_constraint
+```
+**If you already have real attendance data with duplicates in it from
+testing the hardware before this fix**, the migration will fail against
+existing duplicate rows — tell me if that's the case and I'll write a
+cleanup migration that removes the duplicates first.
+
+## Integrating the ZKTeco attendance hardware — step by step
+
+1. **Network the device.** Connect the K40 to the same LAN the sync
+   bridge machine will be on. Find its IP from the device's own menu
+   (Comm → Ethernet or similar) and set a DHCP reservation for it on your
+   router so the IP doesn't change later.
+2. **Enroll staff on the device**, setting each person's device **User
+   ID to their exact `staffCode`** (e.g. `BHB-ST-0001`) — that's the
+   field the sync bridge uses to match a scan back to a Staff record.
+   Verify your K40's firmware accepts alphanumeric IDs of that length;
+   some older firmware is numeric-only or shorter than `BHB-ST-0001`
+   (11 characters) — tell me if that's the case and I'll add a separate
+   `deviceUserId` field so the two don't have to be identical.
+3. **Register the device in the app**: `Settings → Devices → New
+   device`, with its name, location, and LAN IP. Copy the `DEVICE_ID`
+   shown underneath it once created (see the fix above).
+4. **Set up the sync bridge** on a machine on the same LAN as the device
+   (a Raspberry Pi is the common choice — cheap, low-power, stays on):
+   ```bash
+   cd sync-bridge
+   npm install
+   cp .env.example .env
+   ```
+   Fill in `.env`:
+   - `DEVICE_IP` — the K40's LAN IP from step 1
+   - `DEVICE_ID` — from step 3
+   - `API_URL` — your app's URL + `/api/attendance/sync`
+   - `DEVICE_SYNC_SECRET` — must exactly match the main app's `.env`
+   - `POLL_INTERVAL_MINUTES` — default 5 is fine
+5. **Run it**: `npm start` to test, then `npm run pm2` (keeps it running
+   across reboots) once it's working.
+6. **Verify**: have someone scan in, wait for a poll cycle (or run
+   `node sync.js` once manually), then check `/attendance` in the app —
+   the entry should show up with source "Biometric," and the device's
+   badge on `Settings → Devices` should flip to "Synced."
+
+**Resilience already built in, nothing extra to configure**: if the
+site's internet or the app itself is briefly unreachable when a poll
+happens, unsent logs queue to `sync-bridge/queue.json` and retry on the
+next poll — no data loss, no manual recovery needed.
+
 ## Not yet built (flagged, not silently skipped)
 
 - Editing existing departments/shift-types/devices (create + list +

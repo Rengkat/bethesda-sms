@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { classifyAttendance, minutesDeviation } from "@/lib/attendance-rules";
 import { sendLateCheckInAlert } from "@/lib/notifications";
@@ -70,17 +71,30 @@ export async function POST(req: NextRequest) {
       ? classifyAttendance(log.type, timestamp, assignment.shiftType)
       : ("ON_TIME" as const);
 
-    await prisma.attendance.create({
-      data: {
-        staffId: staff.id,
-        deviceId: device.id,
-        timestamp,
-        type: log.type,
-        status,
-        source: "BIOMETRIC",
-      },
-    });
-    created++;
+    // The device resends its full stored log on every poll (see the
+    // schema comment on Attendance's compound unique index), so the same
+    // physical scan arrives here repeatedly. Try the create; if it
+    // collides with the unique constraint, it's a re-send of something
+    // already recorded — count it as skipped, not an error, and don't
+    // re-fire the late-check-in alert for it.
+    try {
+      await prisma.attendance.create({
+        data: {
+          staffId: staff.id,
+          deviceId: device.id,
+          timestamp,
+          type: log.type,
+          status,
+          source: "BIOMETRIC",
+        },
+      });
+      created++;
+    } catch (err) {
+      const isDuplicate = err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002";
+      if (!isDuplicate) throw err;
+      skipped++;
+      continue;
+    }
 
     if (status === "LATE" && assignment) {
       const supervisor = await prisma.staff.findFirst({

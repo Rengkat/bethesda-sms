@@ -159,6 +159,15 @@ model Attendance {
 
   @@index([staffId, timestamp])
   @@index([deviceId])
+  // node-zklib's getAttendances() returns the device's FULL stored log on
+  // every poll, not just new entries since last time (the sync bridge
+  // never clears the device's onboard log) — without this constraint,
+  // every 5-minute poll would re-insert every scan the device has ever
+  // seen, forever. This is what actually prevents that: the same physical
+  // scan (same staff, same device, same instant, same type) can only
+  // exist once, so a re-sent log is silently a no-op instead of a
+  // duplicate row.
+  @@unique([staffId, deviceId, timestamp, type])
 }
 
 enum AttendanceType {

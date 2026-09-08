@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SettingsTabs } from "@/components/shared/settings-tabs";
 import { DeviceCreateButton } from "@/components/shared/device-create-button";
+import { CopyButton } from "@/components/shared/copy-button";
 import { prisma } from "@/lib/prisma";
 
 export const metadata = { title: "Devices" };
@@ -36,6 +37,12 @@ export default async function DevicesSettingsPage() {
                 <div>
                   <p className="font-medium text-foreground">{d.name}</p>
                   <p className="text-muted text-xs">{d.location} · {d.localIp}</p>
+                  <p className="text-muted text-xs mt-1 flex items-center gap-1.5">
+                    <span>
+                      DEVICE_ID: <code className="px-1 py-0.5 rounded bg-gray-100">{d.id}</code>
+                    </span>
+                    <CopyButton value={d.id} />
+                  </p>
                 </div>
                 <Badge tone={d.lastSyncAt ? "success" : "neutral"}>
                   {d.lastSyncAt ? "Synced" : "Never synced"}

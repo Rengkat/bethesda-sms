@@ -42,6 +42,17 @@ export default async function StaffIdCardPage({ params }: { params: Promise<{ id
             page-break-after: always;
           }
           .id-card-preview-frame { padding: 0 !important; background: none !important; }
+          /* The actual fix for "paper doesn't match the screen": browsers
+             strip background-color/background-image by default when
+             printing, to save ink — the blue/navy bands, the gradient
+             avatar, and the pill background would otherwise all print as
+             plain white regardless of what the CSS above says. This forces
+             them to print exactly as shown on screen. */
+          *, *::before, *::after {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
         }
       `}</style>
 
