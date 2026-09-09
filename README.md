@@ -720,6 +720,73 @@ site's internet or the app itself is briefly unreachable when a poll
 happens, unsent logs queue to `sync-bridge/queue.json` and retry on the
 next poll — no data loss, no manual recovery needed.
 
+## This pass: favicon, and a real accessibility audit (a blind user will test this app)
+
+**Favicon.** `src/app/favicon.ico` (multi-resolution 16/32/48), `icon.svg`
+(vector, modern browsers), `apple-icon.png` (180×180). The mark is the
+braille cell for the letter **B** (dots 1 and 2 raised — verified against
+Perkins School for the Blind's reference before using it, not guessed),
+for **B**ethesda, on the app's existing brand-blue gradient. Chose this
+over a "BHB" text monogram deliberately: three letters don't read at
+16px, and a design tied to what the organisation actually does felt more
+honest than a generic badge. A bolder 2-dot-only variant is used at the
+tiny 16/32px sizes specifically, since the full 6-dot cell (including the
+faint unraised dots) turns to mud at that size — full cell is kept for
+48px and up, where it still reads as an actual braille cell rather than
+two random dots.
+
+**Accessibility audit.** Worth saying plainly: this app already had a
+strong foundation before this pass — a real focus trap (Tab/Shift+Tab
+cycling, Escape to close, focus restored on close) on every modal and
+the mobile nav, a working skip-to-content link, consistent
+`role="alert"`/`role="status"` on every error and success message across
+every form, `aria-current="page"` on active nav links, icon-only buttons
+already carrying `aria-label`, and a real focus-visible ring
+(`:focus-visible`, never silently removed). That's not nothing — most of
+what follows is what was still missing, not a rebuild.
+
+**Found and fixed:**
+- **`text-brand` was completely broken** — used in ~36 places across the
+  app for links, but no `--color-brand` token was ever registered in
+  Tailwind's `@theme` block, so the utility class was never generated.
+  Every one of those links has been rendering in the default text color
+  this whole time, underline only, no visible error anywhere. One-line
+  fix in `globals.css`, but it took actually reading the theme block
+  against real usage to catch — nothing flagged it as broken because
+  nothing crashes when a Tailwind class silently doesn't exist.
+- **Green text failed WCAG AA contrast** — `--color-success: #1f9d55`
+  measured 3.49:1 against white; the "On time" / "Active" / "Resolved"
+  badge text using it is 12-13px, which needs the full 4.5:1 threshold,
+  not the relaxed 3:1 for large text. Darkened to `#15803d` (Tailwind's
+  green-700), ~5.0:1.
+- **The three dashboard charts had zero accessible content.** Recharts
+  renders raw SVG with no semantic structure — a screen reader gets
+  nothing from the 7-day attendance trend, the department breakdown, or
+  the 6-month donations trend, and none of that data exists as text
+  anywhere else on the page. Fixed with the standard WCAG pattern: the
+  visual SVG is `aria-hidden`, and a real (`sr-only`, visually hidden but
+  fully readable) `<table>` with proper `<th scope>` carries the exact
+  same data as an actual alternative, not just a one-line summary.
+- **Three "View" links had no distinguishing context** — a screen reader
+  user navigating by links list would hear "View, View, View..." with no
+  way to tell them apart outside the table structure. Added visually
+  hidden context (`<span className="sr-only">`) naming what each one
+  actually opens, and flagged the two that open in a new tab as doing so
+  — an unannounced new tab is disorienting for keyboard/screen-reader
+  users specifically.
+- **The ID card's photo had `alt=""`** (marked decorative) when it's
+  actually meaningful content — fixed to name who it's a photo of, same
+  as the staff detail page's photo already did correctly.
+
+**Deliberately not changed:** button touch targets. WCAG 2.2's AA
+minimum (2.5.8) is 24×24 CSS px; the smallest buttons in this app are
+32px, already above that. The stricter 44px is an AAA "enhanced"
+target, not required for AA — flagging this so it's a documented
+decision, not something quietly skipped.
+
+No schema change, no new dependency — `npm install` isn't even required
+for this pass, just pull the updated files.
+
 ## Not yet built (flagged, not silently skipped)
 
 - Editing existing departments/shift-types/devices (create + list +

@@ -7,7 +7,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
-// Seed-only auth instance: same DB + user schema as the real app,
+// Seed-only auth instance: same DB + uszer schema as the real app,
 // but with sign-up enabled so we can create the first admin.
 // Never import/export this — it's local to this script.
 const seedAuth = betterAuth({
@@ -72,8 +72,8 @@ async function main() {
   });
 
   // --- Seed Super Admin ---
-  const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? "admin@bethesda.local";
-  const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? "ChangeMe123!";
+  const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? "";
+  const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? "";
   const ADMIN_NAME = "Super Admin";
 
   const adminDept = await prisma.department.upsert({

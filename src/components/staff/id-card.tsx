@@ -64,7 +64,7 @@ export function IdCardFront({ staff }: { staff: IdCardStaff }) {
         {staff.passportPhotoUrl ? (
           <Image
             src={staff.passportPhotoUrl}
-            alt=""
+            alt={`${staff.fullName} passport photo`}
             width={300}
             height={300}
             className="h-[72px] w-[72px] rounded-full object-cover border-[3px] border-white shadow-md"

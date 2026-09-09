@@ -10,7 +10,7 @@
   --color-brand-lavender: #efebfb;  /* light accent section background */
   --color-brand-lavender-deep: #e2dbf7;
 
-  --color-success: #1f9d55;
+  --color-success: #15803d;    /* darkened from the original #1f9d55 — that measured 3.49:1 against white, below WCAG AA's 4.5:1 for normal-size text (the badges/status text using it are 12-13px, not "large text," so the relaxed 3:1 threshold doesn't apply). This is Tailwind's green-700, ~5.0:1. */
   --color-warning: #b45309;
   --color-danger: #d92d20;
   --color-danger-bg: #fef3f2;
@@ -29,6 +29,13 @@
   --color-muted: var(--muted);
   --color-border: var(--border);
 
+  /* "brand" (used as text-brand/bg-brand/border-brand across ~36 call
+     sites for links and accents) was never actually registered here —
+     Tailwind v4 only generates a utility for a color name that has a
+     matching --color-<name> token in @theme. Every text-brand link in
+     the app was silently rendering in the default text color, no error,
+     nothing visibly "broken" enough to notice without checking. */
+  --color-brand: var(--color-brand-blue);
   --color-brand-blue: var(--color-brand-blue);
   --color-brand-blue-dark: var(--color-brand-blue-dark);
   --color-brand-blue-light: var(--color-brand-blue-light);

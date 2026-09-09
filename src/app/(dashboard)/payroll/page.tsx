@@ -160,7 +160,7 @@ export default async function PayrollPage({
                       </td>
                       <td className="px-5 py-3 text-right">
                         <Link href={`/payroll/${p.id}`} className="text-sm text-brand underline underline-offset-2">
-                          View
+                          View<span className="sr-only"> {MONTHS[p.month - 1]} {p.year} payroll</span>
                         </Link>
                       </td>
                     </tr>

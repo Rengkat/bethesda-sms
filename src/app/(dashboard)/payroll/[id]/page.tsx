@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
-import { FileSpreadsheet } from "lucide-react";
+import { FileSpreadsheet, Download } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +56,12 @@ export default async function PayrollPeriodPage({ params }: { params: Promise<{ 
               <a href={`/api/payroll/${period.id}/export`}>
                 <FileSpreadsheet className="h-4 w-4" aria-hidden="true" />
                 Export Excel
+              </a>
+            </Button>
+            <Button asChild variant="secondary">
+              <a href={`/api/payroll/${period.id}/export?format=csv`}>
+                <Download className="h-4 w-4" aria-hidden="true" />
+                Export CSV
               </a>
             </Button>
             <PayrollPeriodActions periodId={period.id} status={period.status} />

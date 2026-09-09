@@ -242,7 +242,7 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
                         <div className="flex items-center gap-2 shrink-0">
                           {expired && <Badge tone="warning">Expired</Badge>}
                           <a href={d.fileUrl} target="_blank" rel="noreferrer" className="text-sm text-brand underline underline-offset-2">
-                            View
+                            View<span className="sr-only"> {d.label} (opens in a new tab)</span>
                           </a>
                         </div>
                       </li>
