@@ -2,7 +2,17 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { headers } from "next/headers";
 import Image from "next/image";
-import { Pencil, Mail, Phone, Building2, GraduationCap, FileText, Gavel as GavelIcon, Wallet, IdCard } from "lucide-react";
+import {
+  Pencil,
+  Mail,
+  Phone,
+  Building2,
+  GraduationCap,
+  FileText,
+  Gavel as GavelIcon,
+  Wallet,
+  IdCard,
+} from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -53,7 +63,9 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
   if (!canIssueQuery && role === "SUPERVISOR") {
     const supervisorStaffId = (session?.user as { staffId?: string | null } | undefined)?.staffId;
     if (supervisorStaffId) {
-      const supervisor = await prisma.staff.findUnique({ where: { id: supervisorStaffId } }).catch(() => null);
+      const supervisor = await prisma.staff
+        .findUnique({ where: { id: supervisorStaffId } })
+        .catch(() => null);
       canIssueQuery = Boolean(supervisor && supervisor.departmentId === staff.departmentId);
     }
   }
@@ -94,12 +106,16 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
               </p>
               <div className="flex flex-wrap items-center gap-2 mt-3">
                 <Badge tone={staff.category === "TEACHING" ? "brand" : "neutral"}>
-                  {formatLabel(staff.category)}
+                  {staff.category ? formatLabel(staff.category) : "Uncategorised"}
                 </Badge>
-                <Badge tone={staff.active ? "success" : "neutral"}>{staff.active ? "Active" : "Inactive"}</Badge>
+                <Badge tone={staff.active ? "success" : "neutral"}>
+                  {staff.active ? "Active" : "Inactive"}
+                </Badge>
                 <Badge tone="neutral">{formatLabel(staff.role)}</Badge>
                 {pendingDeductionTotal > 0 && (
-                  <Badge tone="warning">{formatNaira(pendingDeductionTotal)} pending deduction</Badge>
+                  <Badge tone="warning">
+                    {formatNaira(pendingDeductionTotal)} pending deduction
+                  </Badge>
                 )}
               </div>
             </div>
@@ -122,9 +138,18 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
           </div>
         </div>
         <div className="flex flex-wrap gap-x-8 gap-y-2 px-6 py-4 sm:px-8 text-sm text-muted">
-          <span className="flex items-center gap-1.5"><Mail className="h-4 w-4" aria-hidden="true" />{staff.email ?? "No email on file"}</span>
-          <span className="flex items-center gap-1.5"><Phone className="h-4 w-4" aria-hidden="true" />{staff.phone ?? "No phone on file"}</span>
-          <span className="flex items-center gap-1.5"><Building2 className="h-4 w-4" aria-hidden="true" />Hired {formatDate(staff.dateHired)}</span>
+          <span className="flex items-center gap-1.5">
+            <Mail className="h-4 w-4" aria-hidden="true" />
+            {staff.email ?? "No email on file"}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Phone className="h-4 w-4" aria-hidden="true" />
+            {staff.phone ?? "No phone on file"}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Building2 className="h-4 w-4" aria-hidden="true" />
+            Hired {formatDate(staff.dateHired)}
+          </span>
         </div>
       </Card>
 
@@ -136,9 +161,15 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
               <CardTitle>Personal details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <Row label="Date of birth" value={staff.dateOfBirth ? formatDate(staff.dateOfBirth) : "—"} />
+              <Row
+                label="Date of birth"
+                value={staff.dateOfBirth ? formatDate(staff.dateOfBirth) : "—"}
+              />
               <Row label="Gender" value={staff.gender ? formatLabel(staff.gender) : "—"} />
-              <Row label="Marital status" value={staff.maritalStatus ? formatLabel(staff.maritalStatus) : "—"} />
+              <Row
+                label="Marital status"
+                value={staff.maritalStatus ? formatLabel(staff.maritalStatus) : "—"}
+              />
               <Row label="Nationality" value={staff.nationality ?? "—"} />
               <Row label="State of origin" value={staff.stateOfOrigin ?? "—"} />
               <Row label="Home address" value={staff.homeAddress ?? "—"} />
@@ -166,9 +197,15 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
             <CardContent className="space-y-3 text-sm">
               <Row label="Bank" value={staff.bankName ?? "—"} />
               <Row label="Account name" value={staff.bankAccountName ?? "—"} />
-              <Row label="Account number" value={staff.bankAccountNumber ? maskAccountNumber(staff.bankAccountNumber) : "—"} />
+              <Row
+                label="Account number"
+                value={staff.bankAccountNumber ? maskAccountNumber(staff.bankAccountNumber) : "—"}
+              />
               {canViewSalary && (
-                <Row label="Monthly salary" value={staff.currentSalary ? formatNaira(staff.currentSalary) : "—"} />
+                <Row
+                  label="Monthly salary"
+                  value={staff.currentSalary ? formatNaira(staff.currentSalary) : "—"}
+                />
               )}
             </CardContent>
           </Card>
@@ -187,7 +224,9 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
               ) : (
                 <ul className="divide-y divide-border">
                   {staff.qualifications.map((q) => (
-                    <li key={q.id} className="py-2.5 flex items-center justify-between text-sm gap-4">
+                    <li
+                      key={q.id}
+                      className="py-2.5 flex items-center justify-between text-sm gap-4">
                       <div>
                         <p className="font-medium text-foreground">
                           {formatLabel(q.level)}
@@ -200,7 +239,11 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
                         </p>
                       </div>
                       {q.certificateDoc && (
-                        <a href={q.certificateDoc.fileUrl} target="_blank" rel="noreferrer" className="text-sm text-brand underline underline-offset-2 shrink-0">
+                        <a
+                          href={q.certificateDoc.fileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sm text-brand underline underline-offset-2 shrink-0">
                           View certificate
                         </a>
                       )}
@@ -218,7 +261,9 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
                 <CardTitle>Documents</CardTitle>
               </span>
               {canEditStaff && (
-                <Link href={`/staff/${staff.id}/edit`} className="text-sm text-brand underline underline-offset-2">
+                <Link
+                  href={`/staff/${staff.id}/edit`}
+                  className="text-sm text-brand underline underline-offset-2">
                   Upload
                 </Link>
               )}
@@ -231,7 +276,9 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
                   {staff.documents.map((d) => {
                     const expired = d.expiresAt ? d.expiresAt < new Date() : false;
                     return (
-                      <li key={d.id} className="py-2.5 flex items-center justify-between text-sm gap-4">
+                      <li
+                        key={d.id}
+                        className="py-2.5 flex items-center justify-between text-sm gap-4">
                         <div>
                           <p className="font-medium text-foreground">{d.label}</p>
                           <p className="text-muted">
@@ -241,7 +288,11 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           {expired && <Badge tone="warning">Expired</Badge>}
-                          <a href={d.fileUrl} target="_blank" rel="noreferrer" className="text-sm text-brand underline underline-offset-2">
+                          <a
+                            href={d.fileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm text-brand underline underline-offset-2">
                             View<span className="sr-only"> {d.label} (opens in a new tab)</span>
                           </a>
                         </div>
@@ -270,19 +321,27 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
               ) : (
                 <>
                   {staff.queriesReceived.map((q) => (
-                    <div key={q.id} className="rounded-xl border border-border p-3 space-y-2 text-sm">
+                    <div
+                      key={q.id}
+                      className="rounded-xl border border-border p-3 space-y-2 text-sm">
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <p className="font-medium text-foreground">{q.subject}</p>
                           <p className="text-muted text-xs">
-                            {formatLabel(q.category)} · Issued by {q.issuedBy.fullName} · {formatDate(q.dateIssued)}
+                            {formatLabel(q.category)} · Issued by {q.issuedBy.fullName} ·{" "}
+                            {formatDate(q.dateIssued)}
                           </p>
                         </div>
                         <Badge
                           tone={
-                            q.status === "RESOLVED" ? "success" : q.status === "ESCALATED" ? "danger" : q.status === "RESPONDED" ? "brand" : "warning"
-                          }
-                        >
+                            q.status === "RESOLVED"
+                              ? "success"
+                              : q.status === "ESCALATED"
+                                ? "danger"
+                                : q.status === "RESPONDED"
+                                  ? "brand"
+                                  : "warning"
+                          }>
                           {formatLabel(q.status)}
                         </Badge>
                       </div>
@@ -296,15 +355,21 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
                       {q.deductionAmount && (
                         <p className="text-danger font-medium">
                           Deduction: {formatNaira(q.deductionAmount)}
-                          {q.payslipId ? " · already applied to a payslip" : " · pending next payroll run"}
+                          {q.payslipId
+                            ? " · already applied to a payslip"
+                            : " · pending next payroll run"}
                         </p>
                       )}
-                      {canResolveQuery && q.status !== "RESOLVED" && <QueryResolveButton queryId={q.id} />}
+                      {canResolveQuery && q.status !== "RESOLVED" && (
+                        <QueryResolveButton queryId={q.id} />
+                      )}
                     </div>
                   ))}
 
                   {staff.deductionsReceived.map((d) => (
-                    <div key={d.id} className="rounded-xl border border-border p-3 flex items-start justify-between gap-4 text-sm">
+                    <div
+                      key={d.id}
+                      className="rounded-xl border border-border p-3 flex items-start justify-between gap-4 text-sm">
                       <div>
                         <p className="font-medium text-foreground">{d.reason}</p>
                         <p className="text-muted text-xs">
@@ -338,7 +403,14 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
                       <span>
                         {formatDate(l.startDate)} – {formatDate(l.endDate)}
                       </span>
-                      <Badge tone={l.status === "APPROVED" ? "success" : l.status === "REJECTED" ? "warning" : "neutral"}>
+                      <Badge
+                        tone={
+                          l.status === "APPROVED"
+                            ? "success"
+                            : l.status === "REJECTED"
+                              ? "warning"
+                              : "neutral"
+                        }>
                         {formatLabel(l.status)}
                       </Badge>
                     </li>
@@ -364,8 +436,13 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
                         {a.type === "CHECK_IN" ? "Checked in" : "Checked out"} at {a.device.name}
                       </span>
                       <Badge
-                        tone={a.status === "ON_TIME" ? "success" : a.status === "LATE" || a.status === "EARLY_DEPARTURE" ? "warning" : "brand"}
-                      >
+                        tone={
+                          a.status === "ON_TIME"
+                            ? "success"
+                            : a.status === "LATE" || a.status === "EARLY_DEPARTURE"
+                              ? "warning"
+                              : "brand"
+                        }>
                         {formatLabel(a.status)}
                       </Badge>
                     </li>

@@ -50,7 +50,7 @@ export function StaffTable({ staff }: { staff: StaffRow[] }) {
               <td className="px-5 py-3 text-muted">{formatLabel(person.role)}</td>
               <td className="px-5 py-3">
                 <Badge tone={person.category === "TEACHING" ? "brand" : "neutral"}>
-                  {formatLabel(person.category)}
+                  {person.category ? formatLabel(person.category) : "Uncategorised"}
                 </Badge>
               </td>
               <td className="px-5 py-3">

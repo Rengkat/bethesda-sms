@@ -16,6 +16,12 @@ import { parseCsvToObjects } from "@/lib/csv";
  * accountability note for "why is there a block of manual entries here"
  * instead of forcing a duplicate reason per row.
  */
+
+type AttendanceCreateManyArgs = NonNullable<Parameters<typeof prisma.attendance.createMany>[0]>;
+type AttendanceCreateManyArg = AttendanceCreateManyArgs["data"];
+type Unwrap<T> = T extends (infer U)[] ? U : T;
+type AttendanceCreateManyInput = Unwrap<AttendanceCreateManyArg>;
+
 export async function POST(req: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -33,7 +39,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Please choose a CSV file." }, { status: 422 });
   }
   if (typeof reason !== "string" || !reason.trim()) {
-    return NextResponse.json({ message: "A reason is required for a bulk manual import." }, { status: 422 });
+    return NextResponse.json(
+      { message: "A reason is required for a bulk manual import." },
+      { status: 422 },
+    );
   }
 
   const text = await file.text();
@@ -53,7 +62,7 @@ export async function POST(req: NextRequest) {
   const deviceByName = new Map(deviceList.map((d) => [d.name, d.id]));
 
   const errors: string[] = [];
-  const toCreate: Array<Parameters<typeof prisma.attendance.create>[0]["data"]> = [];
+  const toCreate: AttendanceCreateManyInput[] = [];
 
   rows.forEach((row, i) => {
     const lineNo = i + 2;
@@ -82,7 +91,7 @@ export async function POST(req: NextRequest) {
     toCreate.push({
       staffId,
       deviceId,
-      type: type as never,
+      type,
       timestamp,
       status: "MANUAL_OVERRIDE",
       source: "MANUAL",
@@ -101,5 +110,9 @@ export async function POST(req: NextRequest) {
     details: { reason, created: toCreate.length, skipped: errors.length },
   });
 
-  return NextResponse.json({ created: toCreate.length, skipped: errors.length, errors: errors.slice(0, 20) });
+  return NextResponse.json({
+    created: toCreate.length,
+    skipped: errors.length,
+    errors: errors.slice(0, 20),
+  });
 }

@@ -33,8 +33,8 @@ export default async function DonationsPage({
         <PageHeader title="Donations" description="Donor records and giving history." />
         <Card>
           <CardContent className="text-sm text-muted">
-            Donation records are restricted to Super Admin and HR Admin. Ask an admin if you
-            need access.
+            Donation records are restricted to Super Admin and HR Admin. Ask an admin if you need
+            access.
           </CardContent>
         </Card>
       </div>
@@ -58,29 +58,33 @@ export default async function DonationsPage({
     }
   }
 
+  const donationsQuery = prisma.donation.findMany({
+    where: donatedAtFilter ? { donatedAt: donatedAtFilter } : undefined,
+    include: { visitor: { select: { id: true, fullName: true } } },
+    orderBy: { donatedAt: "desc" },
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
+  });
+  type DonationWithVisitor = Awaited<typeof donationsQuery>[number];
+
+  const monthTotalQuery = prisma.donation.aggregate({
+    _sum: { amount: true },
+    where: { donatedAt: { gte: startOfMonth }, donationType: { not: "IN_KIND" }, voided: false },
+  });
+  type DonationAggregate = Awaited<typeof monthTotalQuery>;
+
   const [donations, totalCount, monthTotal, yearTotal] = await Promise.all([
+    donationsQuery.catch((): DonationWithVisitor[] => []),
     prisma.donation
-      .findMany({
-        where: donatedAtFilter ? { donatedAt: donatedAtFilter } : undefined,
-        include: { visitor: { select: { id: true, fullName: true } } },
-        orderBy: { donatedAt: "desc" },
-        skip: (page - 1) * PAGE_SIZE,
-        take: PAGE_SIZE,
-      })
-      .catch(() => []),
-    prisma.donation.count({ where: donatedAtFilter ? { donatedAt: donatedAtFilter } : undefined }).catch(() => 0),
-    prisma.donation
-      .aggregate({
-        _sum: { amount: true },
-        where: { donatedAt: { gte: startOfMonth }, donationType: { not: "IN_KIND" }, voided: false },
-      })
-      .catch(() => ({ _sum: { amount: null } })),
+      .count({ where: donatedAtFilter ? { donatedAt: donatedAtFilter } : undefined })
+      .catch((): number => 0),
+    monthTotalQuery.catch((): DonationAggregate => ({ _sum: { amount: null } })),
     prisma.donation
       .aggregate({
         _sum: { amount: true },
         where: { donatedAt: { gte: startOfYear }, donationType: { not: "IN_KIND" }, voided: false },
       })
-      .catch(() => ({ _sum: { amount: null } })),
+      .catch((): DonationAggregate => ({ _sum: { amount: null } })),
   ]);
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
@@ -91,7 +95,11 @@ export default async function DonationsPage({
         description="Donor records and giving history — from donors to the organisation, unrelated to staff."
         actions={
           <>
-            <CsvImportButton importUrl="/api/donations/import" templateUrl="/api/donations/template" label="Import CSV" />
+            <CsvImportButton
+              importUrl="/api/donations/import"
+              templateUrl="/api/donations/template"
+              label="Import CSV"
+            />
             <DateRangeExportButton exportUrl="/api/donations/export" label="Export" />
             <DonationRegisterButton />
           </>
@@ -134,7 +142,11 @@ export default async function DonationsPage({
           />
         ) : (
           <>
-            <DonationTable donations={donations.map(serializeDonationForClient)} />
+            <DonationTable
+              donations={donations.map((donation: DonationWithVisitor) =>
+                serializeDonationForClient(donation),
+              )}
+            />
             <PaginationControls
               currentPage={page}
               totalPages={totalPages}

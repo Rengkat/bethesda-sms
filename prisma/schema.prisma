@@ -1,6 +1,3 @@
-// Bethesda Home & School for the Blind — Staff Management System
-// Prisma schema
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,27 +7,20 @@ datasource db {
   provider = "postgresql"
 }
 
-// ---------------------------------------------------------------------------
-// Core identity & org structure
-// ---------------------------------------------------------------------------
-
 model Staff {
-  id                 String    @id @default(cuid())
-  staffCode          String    @unique // e.g. BHB-0042, mapped to ZKTeco device user ID
-  fullName           String
-  email              String?   @unique
-  phone              String?
-  role               StaffRole
-  category           StaffCategory? // Teaching / Non-teaching (academic vs non-academic)
-  department         Department @relation(fields: [departmentId], references: [id])
-  departmentId       String
-  employmentType     EmploymentType
-  isVisuallyImpaired Boolean   @default(false) // informs UI/communication preferences, not access control
-  dateHired          DateTime
-  dateExited         DateTime?
-  active             Boolean   @default(true)
-
-  // --- Personal / HR detail ---
+  id                    String            @id @default(cuid())
+  staffCode             String            @unique
+  fullName              String
+  email                 String?           @unique
+  phone                 String?
+  role                  StaffRole
+  category              StaffCategory?
+  departmentId          String
+  employmentType        EmploymentType
+  isVisuallyImpaired    Boolean           @default(false)
+  dateHired             DateTime
+  dateExited            DateTime?
+  active                Boolean           @default(true)
   dateOfBirth           DateTime?
   gender                Gender?
   maritalStatus         MaritalStatus?
@@ -44,32 +34,331 @@ model Staff {
   bankAccountNumber     String?
   bankAccountName       String?
   passportPhotoUrl      String?
-
-  // Monthly gross salary. Deliberately kept on Staff rather than a separate
-  // payroll table since this app does not run payroll — it just needs a
-  // figure for HR planning/budgeting. Read access is restricted in the UI
-  // to SUPER_ADMIN/HR_ADMIN via `permissions.ts` ("staff:view-salary"); it
-  // is never sent to the client for roles that lack that permission.
-  currentSalary Decimal? @db.Decimal(12, 2)
-
-  shiftAssignments   ShiftAssignment[]
-  attendances        Attendance[]
-  leaveRequests      LeaveRequest[]
-  documents          StaffDocument[]
-  qualifications     Qualification[]
-  queriesReceived    StaffQuery[]    @relation("QueriesReceived")
-  queriesIssued      StaffQuery[]    @relation("QueriesIssued")
-  deductionsReceived StaffDeduction[] @relation("DeductionsReceived")
-  deductionsIssued   StaffDeduction[] @relation("DeductionsIssued")
-  payslips           Payslip[]
-  user               User?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  currentSalary         Decimal?          @db.Decimal(12, 2)
+  attendances           Attendance[]
+  leaveRequests         LeaveRequest[]
+  payslips              Payslip[]
+  qualifications        Qualification[]
+  shiftAssignments      ShiftAssignment[]
+  department            Department        @relation(fields: [departmentId], references: [id])
+  deductionsIssued      StaffDeduction[]  @relation("DeductionsIssued")
+  deductionsReceived    StaffDeduction[]  @relation("DeductionsReceived")
+  documents             StaffDocument[]
+  queriesIssued         StaffQuery[]      @relation("QueriesIssued")
+  queriesReceived       StaffQuery[]      @relation("QueriesReceived")
+  user                  User?
 
   @@index([departmentId])
   @@index([active])
   @@index([category])
+}
+
+model Department {
+  id    String  @id @default(cuid())
+  name  String  @unique
+  staff Staff[]
+}
+
+model ShiftType {
+  id                 String            @id @default(cuid())
+  name               String
+  startTime          String
+  endTime            String
+  gracePeriodMinutes Int               @default(10)
+  assignments        ShiftAssignment[]
+}
+
+model ShiftAssignment {
+  id            String    @id @default(cuid())
+  staffId       String
+  shiftTypeId   String
+  daysOfWeek    Int[]
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+  shiftType     ShiftType @relation(fields: [shiftTypeId], references: [id])
+  staff         Staff     @relation(fields: [staffId], references: [id])
+
+  @@index([staffId])
+}
+
+model Device {
+  id          String       @id @default(cuid())
+  name        String
+  localIp     String
+  location    String
+  lastSyncAt  DateTime?
+  attendances Attendance[]
+}
+
+model Attendance {
+  id        String           @id @default(cuid())
+  staffId   String
+  deviceId  String
+  timestamp DateTime
+  type      AttendanceType
+  status    AttendanceStatus
+  source    AttendanceSource
+  createdAt DateTime         @default(now())
+  device    Device           @relation(fields: [deviceId], references: [id])
+  staff     Staff            @relation(fields: [staffId], references: [id])
+
+  @@unique([staffId, deviceId, timestamp, type])
+  @@index([staffId, timestamp])
+  @@index([deviceId])
+}
+
+model LeaveType {
+  id                 String         @id @default(cuid())
+  name               String
+  defaultDaysPerYear Int
+  requests           LeaveRequest[]
+}
+
+model LeaveRequest {
+  id          String      @id @default(cuid())
+  staffId     String
+  leaveTypeId String
+  startDate   DateTime
+  endDate     DateTime
+  reason      String?
+  status      LeaveStatus @default(PENDING)
+  approvedBy  String?
+  decidedAt   DateTime?
+  createdAt   DateTime    @default(now())
+  leaveType   LeaveType   @relation(fields: [leaveTypeId], references: [id])
+  staff       Staff       @relation(fields: [staffId], references: [id])
+
+  @@index([staffId])
+  @@index([status])
+}
+
+model Qualification {
+  id               String             @id @default(cuid())
+  staffId          String
+  level            QualificationLevel
+  awardingBody     String
+  fieldOfStudy     String?
+  grade            String?
+  yearObtained     Int?
+  certificateDocId String?            @unique
+  createdAt        DateTime           @default(now())
+  certificateDoc   StaffDocument?     @relation(fields: [certificateDocId], references: [id])
+  staff            Staff              @relation(fields: [staffId], references: [id])
+
+  @@index([staffId])
+}
+
+model StaffDocument {
+  id            String         @id @default(cuid())
+  staffId       String
+  type          DocumentType?
+  label         String
+  fileUrl       String
+  expiresAt     DateTime?
+  uploadedAt    DateTime       @default(now())
+  qualification Qualification?
+  staff         Staff          @relation(fields: [staffId], references: [id])
+
+  @@index([staffId])
+  @@index([type])
+}
+
+model Visitor {
+  id             String          @id @default(cuid())
+  fullName       String
+  phone          String?
+  organization   String?
+  category       VisitorCategory @default(GENERAL)
+  purposeOfVisit String
+  personToSee    String
+  badgeNumber    String?
+  timeIn         DateTime        @default(now())
+  timeOut        DateTime?
+  registeredBy   String
+  notes          String?
+  createdAt      DateTime        @default(now())
+  voided         Boolean         @default(false)
+  voidedAt       DateTime?
+  voidedBy       String?
+  voidReason     String?
+  donations      Donation[]
+
+  @@index([timeIn])
+  @@index([category])
+  @@index([voided])
+}
+
+model Donation {
+  id                String       @id @default(cuid())
+  donorName         String
+  donorType         DonorType    @default(INDIVIDUAL)
+  donorContact      String?
+  donationType      DonationType
+  amount            Decimal?     @db.Decimal(12, 2)
+  currency          String       @default("NGN")
+  inKindDescription String?
+  purpose           String?
+  receiptNumber     String?
+  donatedAt         DateTime     @default(now())
+  recordedBy        String
+  notes             String?
+  createdAt         DateTime     @default(now())
+  visitorId         String?
+  voided            Boolean      @default(false)
+  voidedAt          DateTime?
+  voidedBy          String?
+  voidReason        String?
+  visitor           Visitor?     @relation(fields: [visitorId], references: [id])
+
+  @@index([donatedAt])
+  @@index([donorType])
+  @@index([voided])
+  @@index([visitorId])
+}
+
+model StaffQuery {
+  id               String        @id @default(cuid())
+  staffId          String
+  issuedById       String
+  category         QueryCategory
+  subject          String
+  description      String
+  dateIssued       DateTime      @default(now())
+  responseDeadline DateTime?
+  staffResponse    String?
+  respondedAt      DateTime?
+  status           QueryStatus   @default(PENDING_RESPONSE)
+  deductionAmount  Decimal?      @db.Decimal(12, 2)
+  payslipId        String?
+  createdAt        DateTime      @default(now())
+  issuedBy         Staff         @relation("QueriesIssued", fields: [issuedById], references: [id])
+  payslip          Payslip?      @relation(fields: [payslipId], references: [id])
+  staff            Staff         @relation("QueriesReceived", fields: [staffId], references: [id])
+
+  @@index([staffId])
+  @@index([status])
+}
+
+model StaffDeduction {
+  id         String   @id @default(cuid())
+  staffId    String
+  issuedById String
+  reason     String
+  amount     Decimal  @db.Decimal(12, 2)
+  dateIssued DateTime @default(now())
+  payslipId  String?
+  createdAt  DateTime @default(now())
+  issuedBy   Staff    @relation("DeductionsIssued", fields: [issuedById], references: [id])
+  payslip    Payslip? @relation(fields: [payslipId], references: [id])
+  staff      Staff    @relation("DeductionsReceived", fields: [staffId], references: [id])
+
+  @@index([staffId])
+}
+
+model PayrollPeriod {
+  id          String        @id @default(cuid())
+  month       Int
+  year        Int
+  status      PayrollStatus @default(DRAFT)
+  generatedBy String
+  finalizedAt DateTime?
+  paidAt      DateTime?
+  createdAt   DateTime      @default(now())
+  payslips    Payslip[]
+
+  @@unique([month, year])
+}
+
+model Payslip {
+  id                 String           @id @default(cuid())
+  periodId           String
+  staffId            String
+  baseSalary         Decimal          @db.Decimal(12, 2)
+  lateCount          Int              @default(0)
+  absenceCount       Int              @default(0)
+  queryDeductions    Decimal          @default(0) @db.Decimal(12, 2)
+  queryDeductionNote String?
+  otherDeductions    Decimal          @default(0) @db.Decimal(12, 2)
+  otherDeductionNote String?
+  netPay             Decimal          @db.Decimal(12, 2)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  period             PayrollPeriod    @relation(fields: [periodId], references: [id])
+  staff              Staff            @relation(fields: [staffId], references: [id])
+  deductions         StaffDeduction[]
+  queries            StaffQuery[]
+
+  @@unique([periodId, staffId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  action     String
+  targetType String
+  targetId   String
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([targetType, targetId])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  name          String?
+  role          StaffRole @default(SUPPORT_STAFF)
+  staffId       String?   @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  staff         Staff?    @relation(fields: [staffId], references: [id])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  issuer                String
+  password              String?
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([issuer, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 enum StaffRole {
@@ -82,8 +371,8 @@ enum StaffRole {
 }
 
 enum StaffCategory {
-  TEACHING     // Academic staff — classroom/instructional roles
-  NON_TEACHING // Non-academic staff — admin, kitchen, security, grounds, etc.
+  TEACHING
+  NON_TEACHING
 }
 
 enum EmploymentType {
@@ -104,72 +393,6 @@ enum MaritalStatus {
   WIDOWED
 }
 
-model Department {
-  id    String  @id @default(cuid())
-  name  String  @unique // Academics, Boarding/House, Admin, Kitchen, Security, Grounds
-  staff Staff[]
-}
-
-// ---------------------------------------------------------------------------
-// Shifts & attendance
-// ---------------------------------------------------------------------------
-
-model ShiftType {
-  id                 String   @id @default(cuid())
-  name               String // "School Day", "Boarding Night", "Boarding Day"
-  startTime          String // "07:30"
-  endTime            String // "15:30"
-  gracePeriodMinutes Int      @default(10)
-  assignments        ShiftAssignment[]
-}
-
-model ShiftAssignment {
-  id            String    @id @default(cuid())
-  staff         Staff     @relation(fields: [staffId], references: [id])
-  staffId       String
-  shiftType     ShiftType @relation(fields: [shiftTypeId], references: [id])
-  shiftTypeId   String
-  daysOfWeek    Int[] // 0=Sun ... 6=Sat
-  effectiveFrom DateTime
-  effectiveTo   DateTime?
-
-  @@index([staffId])
-}
-
-model Device {
-  id          String   @id @default(cuid())
-  name        String // "Main Entrance K40"
-  localIp     String
-  location    String
-  lastSyncAt  DateTime?
-  attendances Attendance[]
-}
-
-model Attendance {
-  id        String           @id @default(cuid())
-  staff     Staff            @relation(fields: [staffId], references: [id])
-  staffId   String
-  device    Device           @relation(fields: [deviceId], references: [id])
-  deviceId  String
-  timestamp DateTime
-  type      AttendanceType
-  status    AttendanceStatus
-  source    AttendanceSource
-  createdAt DateTime         @default(now())
-
-  @@index([staffId, timestamp])
-  @@index([deviceId])
-  // node-zklib's getAttendances() returns the device's FULL stored log on
-  // every poll, not just new entries since last time (the sync bridge
-  // never clears the device's onboard log) — without this constraint,
-  // every 5-minute poll would re-insert every scan the device has ever
-  // seen, forever. This is what actually prevents that: the same physical
-  // scan (same staff, same device, same instant, same type) can only
-  // exist once, so a re-sent log is silently a no-op instead of a
-  // duplicate row.
-  @@unique([staffId, deviceId, timestamp, type])
-}
-
 enum AttendanceType {
   CHECK_IN
   CHECK_OUT
@@ -183,67 +406,15 @@ enum AttendanceStatus {
 }
 
 enum AttendanceSource {
-  BIOMETRIC // ZKTeco device sync
-  MANUAL    // Admin manual entry/override
-  WEB_SELF  // Staff self sign-in/out from the dashboard (no device present)
-}
-
-// ---------------------------------------------------------------------------
-// Leave
-// ---------------------------------------------------------------------------
-
-model LeaveType {
-  id                 String         @id @default(cuid())
-  name               String // Annual, Sick, Casual, Maternity/Paternity, Unpaid
-  defaultDaysPerYear Int
-  requests           LeaveRequest[]
-}
-
-model LeaveRequest {
-  id          String      @id @default(cuid())
-  staff       Staff       @relation(fields: [staffId], references: [id])
-  staffId     String
-  leaveType   LeaveType   @relation(fields: [leaveTypeId], references: [id])
-  leaveTypeId String
-  startDate   DateTime
-  endDate     DateTime
-  reason      String?
-  status      LeaveStatus @default(PENDING)
-  approvedBy  String?
-  decidedAt   DateTime?
-  createdAt   DateTime    @default(now())
-
-  @@index([staffId])
-  @@index([status])
+  BIOMETRIC
+  MANUAL
+  WEB_SELF
 }
 
 enum LeaveStatus {
   PENDING
   APPROVED
   REJECTED
-}
-
-// ---------------------------------------------------------------------------
-// Qualifications, results & documents
-// ---------------------------------------------------------------------------
-
-// A staff member's academic/professional qualifications — WAEC/SSCE results,
-// NCE, degrees, professional certifications, etc. Each can optionally point
-// to the scanned certificate/result slip stored as a StaffDocument.
-model Qualification {
-  id               String             @id @default(cuid())
-  staff            Staff              @relation(fields: [staffId], references: [id])
-  staffId          String
-  level            QualificationLevel
-  awardingBody     String // "WAEC", "University of Lagos", "TRCN", etc.
-  fieldOfStudy     String? // "Special Education", "Guidance & Counselling"
-  grade            String? // "Distinction", "Second Class Upper", "Credit"
-  yearObtained     Int?
-  certificateDoc   StaffDocument?     @relation(fields: [certificateDocId], references: [id])
-  certificateDocId String?            @unique
-  createdAt        DateTime           @default(now())
-
-  @@index([staffId])
 }
 
 enum QualificationLevel {
@@ -255,80 +426,17 @@ enum QualificationLevel {
   PGD
   MSC
   PHD
-  PROFESSIONAL_CERT // e.g. TRCN, ICAN, first aid, sign language cert
+  PROFESSIONAL_CERT
   OTHER
-}
-
-model StaffDocument {
-  id         String        @id @default(cuid())
-  staff      Staff         @relation(fields: [staffId], references: [id])
-  staffId    String
-  type       DocumentType?
-  label      String // free-text description, e.g. "2021 NCE Certificate"
-  fileUrl    String
-  expiresAt  DateTime?
-  uploadedAt DateTime      @default(now())
-
-  qualification Qualification?
-
-  @@index([staffId])
-  @@index([type])
 }
 
 enum DocumentType {
   ID_CARD
   CONTRACT
-  QUALIFICATION_CERTIFICATE // degree/NCE/professional certs
-  EXAM_RESULT               // WAEC/SSCE result slips etc.
+  QUALIFICATION_CERTIFICATE
+  EXAM_RESULT
   MEDICAL_REPORT
   OTHER
-}
-
-// ---------------------------------------------------------------------------
-// Visitors (front-desk sign-in book, digitised)
-// ---------------------------------------------------------------------------
-
-// Every NGO front desk keeps a book visitors sign when they arrive. This is
-// that book: who came, why, who they're seeing, when they arrived, and
-// (once they leave) when they left. No login required to appear here — a
-// signed-in staff member (e.g. the gate/front-desk officer) logs entries on
-// a visitor's behalf, which is why `registeredBy` is captured separately
-// from the visitor's own details.
-model Visitor {
-  id             String          @id @default(cuid())
-  fullName       String
-  phone          String?
-  organization   String? // company/agency the visitor represents, if any
-  category       VisitorCategory @default(GENERAL)
-  purposeOfVisit String
-  personToSee    String // who/which department they're here for (free text)
-  badgeNumber    String? // physical visitor-badge number issued, if used
-  timeIn         DateTime        @default(now())
-  timeOut        DateTime?
-  registeredBy   String // actorId of the staff member who logged the entry
-  notes          String?
-  createdAt      DateTime        @default(now())
-
-  // A sign-in book entry is never hard-deleted — voiding keeps the record
-  // (who logged it, when, and why it was voided) for audit purposes
-  // instead of letting a mistaken or fraudulent entry just disappear.
-  voided     Boolean   @default(false)
-  voidedAt   DateTime?
-  voidedBy   String? // actorId
-  voidReason String?
-
-  // A visitor is very often here specifically to donate — this app's own
-  // Visitors feature exists mainly for donors/prospective donors signing
-  // in at the gate. When that happens, the Donation(s) they make link
-  // back here via Donation.visitorId, so this one sign-in book entry can
-  // show a person's full giving history from that visit, while the
-  // donation itself still shows up on the regular Donations page too
-  // (it's one row, referenced from both places, not duplicated).
-  donations Donation[]
-
-  @@index([timeIn])
-  @@index([category])
-  @@index([voided])
 }
 
 enum VisitorCategory {
@@ -339,57 +447,6 @@ enum VisitorCategory {
   DONOR_PARTNER
   VOLUNTEER_PROSPECT
   OTHER
-}
-
-// ---------------------------------------------------------------------------
-// Donations
-// ---------------------------------------------------------------------------
-
-// Manually logged donations — cash, bank transfer, cheque, or in-kind
-// (goods/equipment). A donation comes from a donor (an individual,
-// organization, church, etc.) to the organisation — it has nothing to do
-// with Staff. `recordedBy` is only the actorId of whichever signed-in
-// user typed the entry in (same pattern as Visitor.registeredBy), kept
-// purely for an audit trail of who logged it — not a relation, and not
-// who the money is from. This app does not process payments; it is a
-// record book, same as Visitor. If the organisation later wants an
-// online giving form, that's a separate integration (see .env.example)
-// that would create Donation rows via webhook rather than replacing
-// this model.
-model Donation {
-  id                String       @id @default(cuid())
-  donorName         String
-  donorType         DonorType    @default(INDIVIDUAL)
-  donorContact      String?
-  donationType      DonationType
-  amount            Decimal?     @db.Decimal(12, 2) // null for pure in-kind donations
-  currency          String       @default("NGN")
-  inKindDescription String? // e.g. "40 bags of rice, 2 wheelchairs"
-  purpose           String? // designation — "Feeding programme", "General fund"
-  receiptNumber     String?
-  donatedAt         DateTime     @default(now())
-  recordedBy        String // actorId of whoever logged this entry — not a donor, not staff
-  notes             String?
-  createdAt         DateTime     @default(now())
-
-  // Optional — set when this donation was made during a logged visit
-  // (see the comment on Visitor.donations). Not every donation has one:
-  // a bank transfer from an organisation that never physically visited
-  // has no Visitor entry to link to, and that's fine.
-  visitor   Visitor? @relation(fields: [visitorId], references: [id])
-  visitorId String?
-
-  // Same reasoning as Visitor.voided — a donation is a financial record;
-  // correcting a mistake voids and re-enters rather than deleting.
-  voided     Boolean   @default(false)
-  voidedAt   DateTime?
-  voidedBy   String? // actorId
-  voidReason String?
-
-  @@index([donatedAt])
-  @@index([donorType])
-  @@index([voided])
-  @@index([visitorId])
 }
 
 enum DonorType {
@@ -407,46 +464,6 @@ enum DonationType {
   IN_KIND
 }
 
-// ---------------------------------------------------------------------------
-// Discipline: staff queries (formal write-ups), optionally tied to a
-// payroll deduction
-// ---------------------------------------------------------------------------
-
-// A "query" here is the common HR sense used in Nigerian workplaces: a
-// formal written query issued to a staff member over lateness, absence,
-// misconduct, etc., which they're expected to respond to, and which HR
-// can (optionally) attach a salary deduction to. That deduction, once
-// the query is resolved, is picked up by the next payroll run for that
-// staff member and recorded on their Payslip — see deductionAmount and
-// the Payslip relation below.
-model StaffQuery {
-  id               String        @id @default(cuid())
-  staff            Staff         @relation("QueriesReceived", fields: [staffId], references: [id])
-  staffId          String
-  issuedBy         Staff         @relation("QueriesIssued", fields: [issuedById], references: [id])
-  issuedById       String
-  category         QueryCategory
-  subject          String
-  description      String
-  dateIssued       DateTime      @default(now())
-  responseDeadline DateTime?
-  staffResponse    String?
-  respondedAt      DateTime?
-  status           QueryStatus   @default(PENDING_RESPONSE)
-
-  // Set by HR when resolving the query, if disciplinary action includes a
-  // pay deduction. Only ever pulled into payroll once — `payslip` is set
-  // the moment a payroll run consumes it, so it can't be deducted twice.
-  deductionAmount Decimal? @db.Decimal(12, 2)
-  payslip         Payslip? @relation(fields: [payslipId], references: [id])
-  payslipId       String?
-
-  createdAt DateTime @default(now())
-
-  @@index([staffId])
-  @@index([status])
-}
-
 enum QueryCategory {
   LATENESS
   ABSENTEEISM
@@ -457,177 +474,14 @@ enum QueryCategory {
 }
 
 enum QueryStatus {
-  PENDING_RESPONSE // waiting on the staff member
-  RESPONDED        // staff has replied, awaiting HR decision
-  RESOLVED         // closed, deduction (if any) is locked in
-  ESCALATED        // referred further (e.g. to a disciplinary panel)
-}
-
-// A one-off salary deduction not tied to a formal query — "any other
-// reason" HR needs to dock pay for (an advance repayment, damaged
-// equipment, etc.) without going through the discipline/query process.
-// Claimed by payroll generation exactly like StaffQuery.deductionAmount —
-// summed into the target Payslip's otherDeductions/otherDeductionNote and
-// then linked via payslipId so it can never be counted twice.
-model StaffDeduction {
-  id         String   @id @default(cuid())
-  staff      Staff    @relation("DeductionsReceived", fields: [staffId], references: [id])
-  staffId    String
-  issuedBy   Staff    @relation("DeductionsIssued", fields: [issuedById], references: [id])
-  issuedById String
-  reason     String
-  amount     Decimal  @db.Decimal(12, 2)
-  dateIssued DateTime @default(now())
-  payslip    Payslip? @relation(fields: [payslipId], references: [id])
-  payslipId  String?
-  createdAt  DateTime @default(now())
-
-  @@index([staffId])
-}
-
-// ---------------------------------------------------------------------------
-// Payroll
-// ---------------------------------------------------------------------------
-
-// One PayrollPeriod per calendar month. Generating it snapshots every
-// active staff member's current salary into a Payslip and pulls in any
-// resolved StaffQuery.deductionAmount or StaffDeduction not yet claimed
-// by an earlier payslip. Deductions are deliberately never computed
-// automatically from attendance here — lateness/absence are just as
-// informational counts (lateCount/absenceCount on Payslip); if a late or
-// absent day should actually cost someone pay, that's a decision HR makes
-// explicitly on the staff profile (issue a query or an ad-hoc deduction),
-// not a blanket rate applied at payroll time. This app does not move
-// money — no bank integration, no payment run — it computes what should
-// be paid and records it for HR/finance to action manually (e.g. via the
-// bank details already on the Staff record).
-model PayrollPeriod {
-  id     String        @id @default(cuid())
-  month  Int // 1–12
-  year   Int
-  status PayrollStatus @default(DRAFT)
-
-  generatedBy String // actorId
-  finalizedAt DateTime?
-  paidAt      DateTime?
-
-  payslips  Payslip[]
-  createdAt DateTime  @default(now())
-
-  @@unique([month, year])
+  PENDING_RESPONSE
+  RESPONDED
+  RESOLVED
+  ESCALATED
 }
 
 enum PayrollStatus {
-  DRAFT     // generated, figures can still be regenerated/reviewed
-  FINALIZED // locked — figures are final, ready for payment
-  PAID      // payment has been made outside this app
-}
-
-model Payslip {
-  id       String        @id @default(cuid())
-  period   PayrollPeriod @relation(fields: [periodId], references: [id])
-  periodId String
-  staff    Staff         @relation(fields: [staffId], references: [id])
-  staffId  String
-
-  baseSalary Decimal @db.Decimal(12, 2) // snapshot of Staff.currentSalary at generation time
-
-  // Informational only — shown on the payslip for context, but do NOT
-  // feed into netPay. See the model comment above for why.
-  lateCount    Int @default(0)
-  absenceCount Int @default(0)
-
-  queryDeductions    Decimal @default(0) @db.Decimal(12, 2) // sum of resolved StaffQuery.deductionAmount claimed this period — any category (lateness, misconduct, policy violation, performance, etc.), not just lateness
-  queryDeductionNote String? // joined "category: subject" for each query claimed, so the payslip shows WHY, not just a number
-  otherDeductions    Decimal @default(0) @db.Decimal(12, 2) // ad-hoc StaffDeduction claimed this period (advance repayment, damaged equipment, etc.)
-  otherDeductionNote String?
-
-  netPay Decimal @db.Decimal(12, 2)
-
-  queries     StaffQuery[]
-  deductions  StaffDeduction[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  @@unique([periodId, staffId])
-}
-
-// ---------------------------------------------------------------------------
-// Audit
-// ---------------------------------------------------------------------------
-
-model AuditLog {
-  id         String   @id @default(cuid())
-  actorId    String // admin/user who made the change
-  action     String // "MANUAL_ATTENDANCE_OVERRIDE", "STAFF_EDITED", etc.
-  targetType String // "Attendance", "Staff", "LeaveRequest"
-  targetId   String
-  details    Json?
-  createdAt  DateTime @default(now())
-
-  @@index([targetType, targetId])
-}
-
-// ---------------------------------------------------------------------------
-// Auth (Better Auth schema — Lucia is deprecated as of 2025; Better Auth is
-// the actively maintained successor recommended for new TypeScript projects)
-// ---------------------------------------------------------------------------
-
-model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  emailVerified Boolean   @default(false)
-  name          String?
-  role          StaffRole @default(SUPPORT_STAFF)
-
-  staff   Staff?  @relation(fields: [staffId], references: [id])
-  staffId String? @unique
-
-  sessions Session[]
-  accounts Account[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  token     String   @unique
-  expiresAt DateTime
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Account {
-  id                    String    @id @default(cuid())
-  userId                String
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accountId             String
-  providerId            String
-  issuer                String
-  password              String?
-  accessToken           String?
-  refreshToken          String?
-  idToken               String?
-  accessTokenExpiresAt  DateTime?
-  refreshTokenExpiresAt DateTime?
-  scope                 String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  @@unique([issuer, accountId])
-  @@index([userId])
-}
-
-model Verification {
-  id         String   @id @default(cuid())
-  identifier String
-  value      String
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  DRAFT
+  FINALIZED
+  PAID
 }
