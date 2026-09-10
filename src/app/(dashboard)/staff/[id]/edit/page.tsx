@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StaffForm } from "@/components/staff/staff-form";
 import { StaffDocumentUploadForm } from "@/components/staff/staff-document-upload-form";
+import { PassportPhotoForm } from "@/components/staff/passport-photo-form";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -34,6 +35,15 @@ export default async function EditStaffPage({ params }: { params: Promise<{ id: 
       <Card>
         <CardContent>
           <StaffForm departments={departments} canEditSalary={canEditSalary} staff={serializeStaffForClient(staff)} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Photo</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PassportPhotoForm staffId={staff.id} fullName={staff.fullName} currentPhotoUrl={staff.passportPhotoUrl} />
         </CardContent>
       </Card>
 

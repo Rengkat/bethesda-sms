@@ -787,6 +787,34 @@ decision, not something quietly skipped.
 No schema change, no new dependency — `npm install` isn't even required
 for this pass, just pull the updated files.
 
+## This pass: passport photo upload, and a real full-project validation
+
+**Passport photo upload** — `Staff → Edit → Photo` now has an actual
+upload control (JPG/PNG/WEBP, 5MB cap), same local-disk pattern as
+document uploads (see that route's comment for the serverless-hosting
+caveat). Uploading replaces the old file; there's also a Remove button
+that clears it. Nothing needed to change in the display logic — the
+staff detail page and the ID card already fell back to an initials
+avatar whenever `passportPhotoUrl` was null, so a photo now just shows
+up in both places automatically once uploaded.
+
+**This pass also merged in the project as the user has been running it
+locally** — including their own real fixes made after actually
+compiling against a real generated Prisma client (a type-safety cleanup
+in the attendance bulk-import route, a defensive null-check in the staff
+table) — preserved rather than overwritten. Their copy included a real
+`src/generated/prisma/`, which this sandbox could never produce itself
+(network-restricted from `binaries.prisma.sh` the whole time). Running
+`npx tsc --noEmit` against it for the first time came back **fully
+clean** — the only line was the pre-existing `LayoutProps` issue in
+`src/app/layout.tsx`, which is a Next.js build-time global that doesn't
+exist outside an actual `next dev`/`next build`, not something fixable
+via standalone `tsc`. Every model, route, and component built across
+this entire project — through every prior pass — checks out.
+
+No schema change this time — just `npm install` isn't even required if
+you already have this repo, just pull the new files.
+
 ## Not yet built (flagged, not silently skipped)
 
 - Editing existing departments/shift-types/devices (create + list +
